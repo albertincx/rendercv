@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RenderCV — Live YAML Editor</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- RequireJS for Monaco Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
+
+    <style>
+        :root {
+            --bg-base: #0a0b0e;
+            --bg-surface: #12141c;
+            --bg-surface-elevated: #1a1d29;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-hover: rgba(255, 255, 255, 0.16);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --primary: #8b5cf6;
+            --primary-hover: #a78bfa;
+            --primary-glow: rgba(139, 92, 246, 0.15);
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header Styling */
+        header {
+            background-color: var(--bg-surface);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 10;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .brand-logo {
+            background: linear-gradient(135deg, var(--primary), #ec4899);
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 0 15px var(--primary-glow);
+        }
+
+        .brand-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            background: linear-gradient(to right, #ffffff, #d1d5db);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-tag {
+            font-size: 0.75rem;
+            padding: 0.15rem 0.4rem;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        /* Status Badge */
+        .status-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.825rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            padding-right: 0.5rem;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--text-muted);
+            transition: var(--transition);
+        }
+
+        .status-dot.ready { background-color: var(--success); box-shadow: 0 0 8px var(--success); }
+        .status-dot.compiling { background-color: var(--warning); box-shadow: 0 0 8px var(--warning); animation: pulse 1.5s infinite; }
+        .status-dot.error { background-color: var(--error); box-shadow: 0 0 8px var(--error); }
+
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
+        }
+
+        /* Select controls */
+        .select-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .select-wrapper select {
+            appearance: none;
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            padding: 0.5rem 2.25rem 0.5rem 1rem;
+            font-family: var(--font-sans);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .select-wrapper select:hover {
+            border-color: var(--border-hover);
+            background-color: rgba(255, 255, 255, 0.06);
+        }
+
+        .select-wrapper select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        .select-wrapper .chevron {
+            position: absolute;
+            right: 0.75rem;
+            pointer-events: none;
+            color: var(--text-secondary);
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Dropdowns */
+        .dropdown-wrapper {
+            position: relative;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: calc(100% + 0.5rem);
+            right: 0;
+            background-color: var(--bg-surface-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            width: 220px;
+            display: none;
+            z-index: 100;
+            padding: 0.5rem 0;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .dropdown-menu.visible {
+            display: block;
+        }
+
+        .dropdown-header {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            padding: 0.5rem 1rem 0.25rem 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            margin-bottom: 0.25rem;
+        }
+
+        .dropdown-body {
+            max-height: 250px;
+            overflow-y: auto;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.4rem 0.75rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.875rem;
+            user-select: none;
+            color: var(--text-secondary);
+        }
+
+        .checkbox-item:hover {
+            background-color: rgba(255, 255, 255, 0.04);
+            color: var(--text-primary);
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 1.5px solid var(--border-color);
+            border-radius: 4px;
+            background-color: rgba(255, 255, 255, 0.02);
+            outline: none;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .checkbox-item input[type="checkbox"]:checked {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .checkbox-item input[type="checkbox"]:checked::after {
+            content: '';
+            width: 4px;
+            height: 8px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+            margin-bottom: 2px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-family: var(--font-sans);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            transition: var(--transition);
+            border: 1px solid transparent;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-primary:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background-color: rgba(255, 255, 255, 0.04);
+            border-color: var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background-color: rgba(255, 255, 255, 0.08);
+            border-color: var(--border-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Main Workspace split layout */
+        .workspace {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Panels */
+        .panel {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .editor-panel {
+            width: 50%;
+            border-right: 1px solid var(--border-color);
+            background-color: var(--bg-surface);
+            position: relative;
+        }
+
+        .preview-panel {
+            width: 50%;
+            background-color: var(--bg-base);
+            position: relative;
+        }
+
+        /* Editor Section */
+        #editor-container {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Error/Logs Console Section */
+        .console-panel {
+            background-color: #0b0c10;
+            border-top: 1px solid var(--border-color);
+            max-height: 250px;
+            min-height: 48px;
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+        }
+
+        .console-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1.25rem;
+            cursor: pointer;
+            user-select: none;
+            background-color: rgba(255, 255, 255, 0.01);
+            font-size: 0.825rem;
+            font-weight: 600;
+            border-bottom: 1px solid transparent;
+        }
+
+        .console-panel.expanded .console-header {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .console-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .console-title.has-error {
+            color: var(--error);
+        }
+
+        .console-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.75rem 1.25rem;
+            display: none;
+            font-family: var(--font-mono);
+            font-size: 0.825rem;
+            line-height: 1.5;
+        }
+
+        .console-panel.expanded .console-content {
+            display: block;
+        }
+
+        .error-item {
+            padding: 0.5rem 0.75rem;
+            border-radius: 6px;
+            background-color: rgba(239, 68, 68, 0.06);
+            border: 1px solid rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .error-item:hover {
+            background-color: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .error-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .error-line-badge {
+            background-color: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            padding: 0.05rem 0.3rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .no-errors {
+            color: var(--text-muted);
+            text-align: center;
+            padding: 1.5rem;
+            font-family: var(--font-sans);
+        }
+
+        /* PDF Preview Section */
+        .preview-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background-color: var(--bg-base);
+        }
+
+        .preview-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            gap: 1rem;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .preview-placeholder i {
+            color: var(--text-muted);
+            width: 48px;
+            height: 48px;
+        }
+
+        .preview-placeholder h3 {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .preview-placeholder p {
+            font-size: 0.875rem;
+            max-width: 320px;
+            line-height: 1.5;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(10, 11, 14, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .loading-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.05);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s infinite linear;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .toast {
+            background-color: var(--bg-surface-elevated);
+            border: 1px solid var(--border-color);
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            transform: translateY(20px);
+            opacity: 0;
+            animation: toast-in 0.3s forwards cubic-bezier(0.16, 1, 0.3, 1);
+            max-width: 350px;
+        }
+
+        @keyframes toast-in {
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.success { border-left: 3px solid var(--success); }
+        .toast.error { border-left: 3px solid var(--error); }
+        .toast.info { border-left: 3px solid var(--primary); }
+
+        .toast-close {
+            margin-left: auto;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: var(--transition);
+        }
+
+        .toast-close:hover {
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <div class="brand-logo">R</div>
+            <span class="brand-name">RenderCV</span>
+            <span class="brand-tag">Live Editor</span>
+        </div>
+
+        <div class="controls">
+            <div class="status-container">
+                <span class="status-dot" id="status-dot"></span>
+                <span id="status-text">Loading editor...</span>
+            </div>
+
+            <div class="select-wrapper">
+                <select id="theme-selector" disabled>
+                    <option value="" disabled selected>Load example theme...</option>
+                </select>
+                <i data-lucide="chevron-down" class="chevron"></i>
+            </div>
+
+            <!-- Sections Visibility Toggle Dropdown -->
+            <div class="dropdown-wrapper">
+                <button id="btn-sections" class="btn btn-secondary" disabled>
+                    <i data-lucide="eye"></i>
+                    <span>Sections</span>
+                    <i data-lucide="chevron-down" style="width: 14px; height: 14px; margin-left: 0.1rem;"></i>
+                </button>
+                <div class="dropdown-menu" id="sections-dropdown">
+                    <div class="dropdown-header">Show/Hide Sections</div>
+                    <div class="dropdown-body" id="sections-checkbox-list">
+                        <div style="color: var(--text-muted); font-size: 0.8rem; padding: 0.5rem 0; text-align: center;">No sections found</div>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-render" class="btn btn-primary" disabled>
+                <i data-lucide="refresh-cw"></i>
+                <span>Render PDF</span>
+            </button>
+
+            <button id="btn-download" class="btn btn-secondary" disabled>
+                <i data-lucide="download"></i>
+                <span>Download</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="workspace">
+        <!-- Left Panel: Editor & Logs -->
+        <div class="panel editor-panel">
+            <div id="editor-container"></div>
+            
+            <!-- Collapsible Console/Error panel -->
+            <div class="console-panel" id="console-panel">
+                <div class="console-header" id="console-header">
+                    <div class="console-title" id="console-title">
+                        <i data-lucide="terminal"></i>
+                        <span>Validation Log</span>
+                        <span id="error-count" style="display:none; background-color: var(--error); color: white; border-radius: 10px; padding: 0.05rem 0.4rem; font-size: 0.7rem; font-weight: 700;">0</span>
+                    </div>
+                    <i data-lucide="chevron-up" id="console-chevron" style="transition: var(--transition)"></i>
+                </div>
+                <div class="console-content" id="console-content">
+                    <!-- Loaded dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: PDF Preview -->
+        <div class="panel preview-panel">
+            <div class="loading-overlay" id="loading-overlay">
+                <div class="spinner"></div>
+                <div style="font-weight: 600;">Compiling Typst to PDF...</div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">This takes less than a second</div>
+            </div>
+            
+            <div class="preview-placeholder" id="preview-placeholder">
+                <i data-lucide="file-text"></i>
+                <h3>PDF Preview</h3>
+                <p>Click <strong>Render PDF</strong> or press <kbd style="background: rgba(255,255,255,0.06); padding: 0.1rem 0.3rem; border-radius: 4px; font-size: 0.75rem; border: 1px solid var(--border-color);">Cmd + Enter</kbd> to compile your YAML resume.</p>
+            </div>
+            
+            <iframe class="preview-iframe" id="preview-iframe" style="display: none;"></iframe>
+        </div>
+    </main>
+
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+        // DOM Elements
+        const themeSelector = document.getElementById('theme-selector');
+        const btnSections = document.getElementById('btn-sections');
+        const sectionsDropdown = document.getElementById('sections-dropdown');
+        const sectionsCheckboxList = document.getElementById('sections-checkbox-list');
+        const btnRender = document.getElementById('btn-render');
+        const btnDownload = document.getElementById('btn-download');
+        const statusDot = document.getElementById('status-dot');
+        const statusText = document.getElementById('status-text');
+        const previewIframe = document.getElementById('preview-iframe');
+        const previewPlaceholder = document.getElementById('preview-placeholder');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const consolePanel = document.getElementById('console-panel');
+        const consoleHeader = document.getElementById('console-header');
+        const consoleContent = document.getElementById('console-content');
+        const consoleChevron = document.getElementById('console-chevron');
+        const consoleTitle = document.getElementById('console-title');
+        const errorCountBadge = document.getElementById('error-count');
+        const toastContainer = document.getElementById('toast-container');
+
+        let currentPdfBlob = null;
+        let isConsoleExpanded = false;
+        
+        // Sections state
+        let allSections = [];
+        let hiddenSections = [];
+
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Toast Helper
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            let iconName = 'info';
+            if (type === 'success') iconName = 'check-circle';
+            if (type === 'error') iconName = 'alert-triangle';
+
+            toast.innerHTML = `
+                <i data-lucide="${iconName}"></i>
+                <span>${message}</span>
+                <i data-lucide="x" class="toast-close"></i>
+            `;
+            
+            toastContainer.appendChild(toast);
+            lucide.createIcons({ attrs: { class: 'lucide' }, nameAttr: 'data-lucide', node: toast });
+            
+            toast.querySelector('.toast-close').addEventListener('click', () => {
+                toast.remove();
+            });
+
+            setTimeout(() => {
+                toast.style.animation = 'none'; // reset transition to fade out smoothly
+                toast.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-20px)';
+                setTimeout(() => toast.remove(), 500);
+            }, 4000);
+        }
+
+        // Status Management
+        function setStatus(state, text) {
+            statusDot.className = 'status-dot';
+            statusDot.classList.add(state);
+            statusText.textContent = text;
+        }
+
+        // Toggle Console
+        function toggleConsole(forceState = null) {
+            isConsoleExpanded = forceState !== null ? forceState : !isConsoleExpanded;
+            if (isConsoleExpanded) {
+                consolePanel.classList.add('expanded');
+                consoleChevron.style.transform = 'rotate(180deg)';
+            } else {
+                consolePanel.classList.remove('expanded');
+                consoleChevron.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        consoleHeader.addEventListener('click', () => toggleConsole());
+
+        // Toggle sections visibility dropdown
+        btnSections.addEventListener('click', (e) => {
+            e.stopPropagation();
+            sectionsDropdown.classList.toggle('visible');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!sectionsDropdown.contains(e.target) && e.target !== btnSections) {
+                sectionsDropdown.classList.remove('visible');
+            }
+        });
+
+        // Configure and Load Monaco Editor
+        setStatus('ready', 'Loading editor components...');
+        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs' }});
+        require(['vs/editor/editor.main'], function() {
+            window.editor = monaco.editor.create(document.getElementById('editor-container'), {
+                value: '',
+                language: 'yaml',
+                theme: 'vs-dark',
+                automaticLayout: true,
+                tabSize: 2,
+                insertSpaces: true,
+                fontSize: 14,
+                fontFamily: 'JetBrains Mono, Menlo, Monaco, Courier New, monospace',
+                minimap: { enabled: false },
+                lineNumbers: 'on',
+                roundedSelection: false,
+                scrollBeyondLastLine: false,
+                readOnly: false,
+                padding: { top: 12, bottom: 12 }
+            });
+
+            monaco.editor.defineTheme('custom-dark', {
+                base: 'vs-dark',
+                inherit: true,
+                rules: [],
+                colors: {
+                    'editor.background': '#12141c',
+                }
+            });
+            monaco.editor.setTheme('custom-dark');
+
+            // Keyboard shortcut for Render (Cmd/Ctrl + Enter)
+            window.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, function() {
+                renderPdf();
+            });
+
+            // When user edits the YAML, clear the section-hiding rules if the structure changes,
+            // or let the next compile auto-update them.
+            window.editor.onDidChangeModelContent(() => {
+                // optional: code change callback
+            });
+
+            setStatus('ready', 'Editor ready');
+            loadTemplates();
+        });
+
+        // Fetch Themes
+        async function loadTemplates() {
+            try {
+                const res = await fetch('/api/templates');
+                const templates = await res.json();
+                
+                themeSelector.innerHTML = '<option value="" disabled selected>Load example theme...</option>';
+                templates.forEach(t => {
+                    const option = document.createElement('option');
+                    option.value = t;
+                    option.textContent = t.charAt(0).toUpperCase() + t.slice(1);
+                    themeSelector.appendChild(option);
+                });
+                
+                themeSelector.disabled = false;
+                btnRender.disabled = false;
+                
+                // Load 'classic' theme by default
+                if (templates.includes('classic')) {
+                    themeSelector.value = 'classic';
+                    loadThemeTemplate('classic');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to load templates from server', 'error');
+                setStatus('error', 'API Connection Error');
+            }
+        }
+
+        // Fetch example YAML for a theme
+        async function loadThemeTemplate(themeName) {
+            setStatus('compiling', `Loading ${themeName} example...`);
+            try {
+                const res = await fetch(`/api/templates/${themeName}`);
+                const data = await res.json();
+                if (window.editor) {
+                    // Reset hidden sections on theme template load
+                    hiddenSections = [];
+                    window.editor.setValue(data.yaml);
+                    showToast(`Loaded "${themeName}" theme template`, 'info');
+                    setStatus('ready', 'Ready');
+                    
+                    // Render automatically when a theme is loaded
+                    renderPdf();
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to retrieve template contents', 'error');
+                setStatus('error', 'Template load failed');
+            }
+        }
+
+        themeSelector.addEventListener('change', (e) => {
+            loadThemeTemplate(e.target.value);
+        });
+
+        // Sections UI Management
+        function updateSectionsUI(serverSections) {
+            allSections = serverSections;
+            // Clean up hiddenSections to only keep sections that actually exist in the current YAML
+            hiddenSections = hiddenSections.filter(s => allSections.includes(s));
+            
+            if (allSections.length === 0) {
+                sectionsCheckboxList.innerHTML = '<div style="color: var(--text-muted); font-size: 0.8rem; padding: 0.5rem 0; text-align: center;">No sections found</div>';
+                btnSections.disabled = true;
+                return;
+            }
+            
+            btnSections.disabled = false;
+            sectionsCheckboxList.innerHTML = '';
+            
+            allSections.forEach(section => {
+                const isChecked = !hiddenSections.includes(section);
+                const item = document.createElement('div');
+                item.className = 'checkbox-item';
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation(); // prevent closing dropdown
+                    const checkbox = item.querySelector('input');
+                    checkbox.checked = !checkbox.checked;
+                    toggleSectionVisibility(section, checkbox.checked);
+                });
+                
+                item.innerHTML = `
+                    <input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleSectionVisibility('${section}', this.checked)">
+                    <span style="flex: 1;">${escapeHtml(section)}</span>
+                `;
+                sectionsCheckboxList.appendChild(item);
+            });
+        }
+
+        function toggleSectionVisibility(section, isVisible) {
+            if (isVisible) {
+                hiddenSections = hiddenSections.filter(s => s !== section);
+            } else {
+                if (!hiddenSections.includes(section)) {
+                    hiddenSections.push(section);
+                }
+            }
+            renderPdf();
+        }
+
+        // Core Render PDF Function
+        async function renderPdf() {
+            if (!window.editor) return;
+            
+            const yamlContent = window.editor.getValue();
+            if (!yamlContent.trim()) {
+                showToast('Editor is empty!', 'error');
+                return;
+            }
+
+            // UI feedback
+            setStatus('compiling', 'Compiling PDF...');
+            loadingOverlay.classList.add('visible');
+            btnRender.disabled = true;
+            
+            // Clear prior errors
+            clearErrors();
+
+            const startTime = performance.now();
+            try {
+                const res = await fetch('/api/render', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        yaml: yamlContent,
+                        hide_sections: hiddenSections
+                    })
+                });
+
+                const endTime = performance.now();
+                const duration = Math.round(endTime - startTime);
+
+                if (res.ok) {
+                    // Update sections checklist from Response Headers
+                    const sectionsHeader = res.headers.get('X-RenderCV-Sections');
+                    if (sectionsHeader) {
+                        try {
+                            const serverSections = JSON.parse(decodeURIComponent(sectionsHeader));
+                            updateSectionsUI(serverSections);
+                        } catch (e) {
+                            console.error("Error parsing sections header", e);
+                        }
+                    }
+
+                    // Load PDF as blob
+                    const blob = await res.blob();
+                    currentPdfBlob = blob;
+                    
+                    const blobUrl = URL.createObjectURL(blob);
+                    
+                    // Display PDF
+                    previewPlaceholder.style.display = 'none';
+                    previewIframe.src = blobUrl;
+                    previewIframe.style.display = 'block';
+                    
+                    btnDownload.disabled = false;
+                    setStatus('ready', `Rendered in ${duration}ms`);
+                    showToast('PDF compiled successfully!', 'success');
+                } else {
+                    const errData = await res.json();
+                    handleRenderingErrors(errData);
+                }
+            } catch (err) {
+                console.error(err);
+                setStatus('error', 'Compilation failed');
+                showToast('Network error during rendering', 'error');
+            } finally {
+                loadingOverlay.classList.remove('visible');
+                btnRender.disabled = false;
+            }
+        }
+
+        btnRender.addEventListener('click', renderPdf);
+
+        // Error Handling & Integration with Monaco
+        function handleRenderingErrors(err) {
+            setStatus('error', 'Compilation Error');
+            toggleConsole(true); // Open log panel
+            
+            let html = '';
+            
+            if (err.type === 'validation_error' && err.errors && err.errors.length > 0) {
+                consoleTitle.classList.add('has-error');
+                errorCountBadge.textContent = err.errors.length;
+                errorCountBadge.style.display = 'inline-block';
+                
+                err.errors.forEach(e => {
+                    const lineLoc = e.line ? `Line ${e.line}, Col ${e.col}` : 'Global';
+                    const lineBadge = e.line ? `<span class="error-line-badge" onclick="event.stopPropagation(); goToLine(${e.line}, ${e.col})">Line ${e.line}</span>` : '';
+                    
+                    html += `
+                        <div class="error-item" onclick="goToLine(${e.line || 1}, ${e.col || 1})">
+                            <div class="error-meta">
+                                ${lineBadge}
+                                <span>${e.schema_location ? e.schema_location.join(' → ') : 'validation'}</span>
+                            </div>
+                            <div style="font-weight: 500;">${escapeHtml(e.message)}</div>
+                        </div>
+                    `;
+                });
+                
+                showToast(`Validation failed with ${err.errors.length} error(s)`, 'error');
+            } else {
+                consoleTitle.classList.add('has-error');
+                errorCountBadge.style.display = 'none';
+                
+                const errorDetail = err.detail || 'An unknown compilation error occurred';
+                
+                html = `
+                    <div class="error-item" style="cursor: default;">
+                        <div class="error-meta">
+                            <span class="error-line-badge">System Error</span>
+                        </div>
+                        <div style="font-weight: 500; white-space: pre-wrap;">${escapeHtml(errorDetail)}</div>
+                    </div>
+                `;
+                
+                if (err.traceback) {
+                    html += `
+                        <div style="margin-top: 1rem; color: var(--text-muted); font-size: 0.75rem;">
+                            <strong>Traceback:</strong>
+                            <pre style="overflow-x: auto; margin-top: 0.5rem; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 4px;">${escapeHtml(err.traceback)}</pre>
+                        </div>
+                    `;
+                }
+                
+                showToast('RenderCV compilation failed', 'error');
+            }
+            
+            consoleContent.innerHTML = html;
+        }
+
+        function clearErrors() {
+            consoleTitle.classList.remove('has-error');
+            errorCountBadge.style.display = 'none';
+            consoleContent.innerHTML = '<div class="no-errors">No active validation issues</div>';
+        }
+
+        function goToLine(line, col = 1) {
+            if (!window.editor) return;
+            window.editor.focus();
+            window.editor.setPosition({ lineNumber: line, column: col });
+            window.editor.revealLineInCenter(line);
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .toString()
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Download Action
+        btnDownload.addEventListener('click', () => {
+            if (!currentPdfBlob) return;
+            
+            const theme = themeSelector.value || 'cv';
+            
+            const url = URL.createObjectURL(currentPdfBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `RenderCV_Resume_${theme}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('PDF downloaded successfully!', 'success');
+        });
+    </script>
+</body>
+</html>
