@@ -897,8 +897,49 @@
             }
         }
 
-        themeSelector.addEventListener('change', (e) => {
+        themeSelector.addEventListener('change', async (e) => {
             const theme = e.target.value;
+            const yamlContent = window.editor ? window.editor.getValue() : '';
+            
+            if (yamlContent.trim()) {
+                setStatus('compiling', `Switching style to ${theme}...`);
+                try {
+                    const res = await fetch('/api/switch_theme', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ yaml: yamlContent, theme: theme })
+                    });
+                    
+                    if (res.ok) {
+                        const data = await res.json();
+                        // Reset hidden sections on style switch
+                        hiddenSections = [];
+                        localStorage.removeItem('rendercv_hidden_sections');
+                        
+                        window.editor.setValue(data.yaml);
+                        localStorage.setItem('rendercv_theme', theme);
+                        showToast(`Switched style to "${theme}" while preserving your resume data!`, 'success');
+                        setStatus('ready', 'Ready');
+                        renderPdf();
+                        return;
+                    } else {
+                        const err = await res.json();
+                        showToast(err.detail || 'Could not migrate CV data. Please fix YAML syntax errors first.', 'error');
+                        // Restore dropdown selection to previous saved theme
+                        themeSelector.value = localStorage.getItem('rendercv_theme') || 'classic';
+                        setStatus('ready', 'Ready');
+                        return;
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showToast('Network error while switching styles', 'error');
+                    themeSelector.value = localStorage.getItem('rendercv_theme') || 'classic';
+                    setStatus('ready', 'Ready');
+                    return;
+                }
+            }
+            
+            // Fallback if editor is empty: load clean default template
             localStorage.setItem('rendercv_theme', theme);
             loadThemeTemplate(theme);
         });

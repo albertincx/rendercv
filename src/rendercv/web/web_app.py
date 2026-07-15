@@ -1,9 +1,11 @@
+import io
 import json
 import pathlib
 import tempfile
 import traceback
 import urllib.parse
 
+import ruamel.yaml
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
@@ -25,6 +27,10 @@ static_dir = pathlib.Path(__file__).parent / "static"
 class RenderRequest(BaseModel):
     yaml: str
     hide_sections: list[str] = []
+
+class SwitchThemeRequest(BaseModel):
+    yaml: str
+    theme: str
 
 @app.get("/", response_class=HTMLResponse)
 def read_root():
@@ -52,6 +58,46 @@ def get_template(theme_name: str) -> dict[str, str]:
         return {"yaml": yaml_content}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
+
+@app.post("/api/switch_theme")
+def switch_theme(request: SwitchThemeRequest):
+    """Merge the 'cv' section from the user's current YAML into the target theme's template."""
+    if request.theme not in available_themes:
+        raise HTTPException(status_code=404, detail="Theme not found.")
+        
+    try:
+        ryaml = ruamel.yaml.YAML()
+        ryaml.preserve_quotes = True
+        ryaml.indent(mapping=2, sequence=4, offset=2)
+        
+        # Load user's current YAML
+        try:
+            current_data = ryaml.load(request.yaml)
+        except Exception as e:
+            err_msg = f"Invalid YAML format in editor: {e!s}"
+            raise ValueError(err_msg) from e
+            
+        if not isinstance(current_data, dict):
+            err_msg = "YAML must represent a mapping/dictionary structure."
+            raise ValueError(err_msg)
+            
+        # Generate the new theme template
+        new_theme_yaml = create_sample_yaml_input_file(file_path=None, name="John Doe", theme=request.theme)
+        new_data = ryaml.load(new_theme_yaml)
+        
+        # Merge the CV data
+        if current_data.get("cv"):
+            new_data["cv"] = current_data["cv"]
+            
+        # Dump back to YAML string
+        with io.StringIO() as stream:
+            ryaml.dump(new_data, stream)
+            merged_yaml = stream.getvalue()
+            
+        return {"yaml": merged_yaml}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
 
 @app.post("/api/render")
 def render_pdf(request: RenderRequest):
