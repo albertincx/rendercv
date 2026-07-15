@@ -805,18 +805,32 @@
                 renderPdf();
             });
 
-            // When user edits the YAML, clear the section-hiding rules if the structure changes,
-            // or let the next compile auto-update them.
+            // Automatically save YAML edits to localStorage
             window.editor.onDidChangeModelContent(() => {
-                // optional: code change callback
+                const yamlVal = window.editor.getValue();
+                localStorage.setItem('rendercv_yaml', yamlVal);
             });
 
             setStatus('ready', 'Editor ready');
-            loadTemplates();
+            
+            // Check for saved state in localStorage
+            const savedYaml = localStorage.getItem('rendercv_yaml');
+            const savedTheme = localStorage.getItem('rendercv_theme');
+            const savedHidden = localStorage.getItem('rendercv_hidden_sections');
+            
+            if (savedHidden) {
+                try {
+                    hiddenSections = JSON.parse(savedHidden);
+                } catch (e) {
+                    console.error("Error parsing saved hidden sections", e);
+                }
+            }
+            
+            loadTemplates(savedYaml, savedTheme);
         });
 
         // Fetch Themes
-        async function loadTemplates() {
+        async function loadTemplates(savedYaml = null, savedTheme = null) {
             try {
                 const res = await fetch('/api/templates');
                 const templates = await res.json();
@@ -832,10 +846,21 @@
                 themeSelector.disabled = false;
                 btnRender.disabled = false;
                 
-                // Load 'classic' theme by default
-                if (templates.includes('classic')) {
-                    themeSelector.value = 'classic';
-                    loadThemeTemplate('classic');
+                // If a saved YAML exists, restore it; otherwise load 'classic' by default
+                if (savedYaml) {
+                    window.editor.setValue(savedYaml);
+                    if (savedTheme && templates.includes(savedTheme)) {
+                        themeSelector.value = savedTheme;
+                    }
+                    setStatus('ready', 'Restored unsaved draft');
+                    showToast('Restored your previous edits', 'info');
+                    renderPdf(); // Initial render of restored content
+                } else {
+                    if (templates.includes('classic')) {
+                        themeSelector.value = 'classic';
+                        localStorage.setItem('rendercv_theme', 'classic');
+                        loadThemeTemplate('classic');
+                    }
                 }
             } catch (err) {
                 console.error(err);
@@ -853,7 +878,12 @@
                 if (window.editor) {
                     // Reset hidden sections on theme template load
                     hiddenSections = [];
+                    localStorage.removeItem('rendercv_hidden_sections');
+                    
                     window.editor.setValue(data.yaml);
+                    // setting the value will auto-save to localStorage via onDidChangeModelContent
+                    localStorage.setItem('rendercv_theme', themeName);
+                    
                     showToast(`Loaded "${themeName}" theme template`, 'info');
                     setStatus('ready', 'Ready');
                     
@@ -868,7 +898,9 @@
         }
 
         themeSelector.addEventListener('change', (e) => {
-            loadThemeTemplate(e.target.value);
+            const theme = e.target.value;
+            localStorage.setItem('rendercv_theme', theme);
+            loadThemeTemplate(theme);
         });
 
         // Sections UI Management
@@ -913,6 +945,7 @@
                     hiddenSections.push(section);
                 }
             }
+            localStorage.setItem('rendercv_hidden_sections', JSON.stringify(hiddenSections));
             renderPdf();
         }
 
