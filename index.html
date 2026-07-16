@@ -3,7 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RenderCV — Live YAML Editor</title>
+    <title>CV Resume Builder — Live YAML Editor</title>
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="CV Resume Builder is a fast, live YAML-based resume editor. Design, customize, and compile your professional CV or resume in real-time.">
+    <meta name="keywords" content="cv builder, resume builder, yaml resume, typst cv, live resume editor, resume compiler, professional resume generator, cv template">
+    <meta name="author" content="CV Resume Builder">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="CV Resume Builder — Live YAML Editor">
+    <meta property="og:description" content="A fast, live YAML-based resume editor. Design, customize, and compile your professional CV or resume in real-time.">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="CV Resume Builder — Live YAML Editor">
+    <meta name="twitter:description" content="A fast, live YAML-based resume editor. Design, customize, and compile your professional CV or resume in real-time.">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -95,6 +111,8 @@
             justify-content: center;
             color: white;
             font-weight: bold;
+            font-size: 0.8rem;
+            letter-spacing: -0.02em;
             box-shadow: 0 0 15px var(--primary-glow);
         }
 
@@ -886,6 +904,7 @@
         }
 
         .permission-modal-content {
+            position: relative;
             background: linear-gradient(135deg, rgba(20, 22, 28, 0.95), rgba(13, 14, 18, 0.95));
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 16px;
@@ -896,6 +915,39 @@
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
             transform: scale(0.9);
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .permission-lang-switcher {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            gap: 0.25rem;
+            background: rgba(255, 255, 255, 0.04);
+            padding: 0.25rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .permission-lang-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .permission-lang-btn:hover {
+            color: #ffffff;
+        }
+
+        .permission-lang-btn.active {
+            background: var(--primary);
+            color: #ffffff;
         }
 
         .permission-modal-overlay.visible .permission-modal-content {
@@ -1049,9 +1101,9 @@
 
 <header>
     <div class="brand">
-        <div class="brand-logo">R</div>
-        <span class="brand-name">RenderCV</span>
-        <span class="brand-tag">Live Editor</span>
+        <div class="brand-logo">CV</div>
+        <span class="brand-name">CV Resume Builder</span>
+        <span class="brand-tag">Live YAML Editor</span>
     </div>
 
     <div class="controls">
@@ -1165,16 +1217,21 @@
 <!-- Permission Dialog Modal -->
 <div class="permission-modal-overlay" id="permission-modal">
     <div class="permission-modal-content">
+        <!-- Language Switcher -->
+        <div class="permission-lang-switcher">
+            <button class="permission-lang-btn active" id="btn-lang-ru" data-lang="ru">RU</button>
+            <button class="permission-lang-btn" id="btn-lang-en" data-lang="en">EN</button>
+        </div>
         <div class="permission-icon">
             <i data-lucide="shield-check" style="width: 48px; height: 48px; color: var(--primary);"></i>
         </div>
-        <h2>Разрешить автономную работу?</h2>
-        <p>Чтобы компилировать ваше резюме прямо в браузере без отправки данных на сервер, необходимо загрузить
+        <h2 id="modal-title">Разрешить автономную работу?</h2>
+        <p id="modal-desc">Чтобы компилировать ваше резюме прямо в браузере без отправки данных на сервер, необходимо загрузить
             локальные библиотеки WebAssembly и среду Python (около 15 МБ при первой загрузке).</p>
         <div class="permission-checkbox-container" style="margin-bottom: 1rem;">
             <label style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; user-select: none;">
                 <input type="checkbox" id="remember-permission" checked style="accent-color: var(--primary);">
-                <span style="font-size: 0.9rem; color: var(--text-secondary);">Запомнить мой выбор</span>
+                <span id="remember-text" style="font-size: 0.9rem; color: var(--text-secondary);">Запомнить мой выбор</span>
             </label>
         </div>
         <div class="permission-buttons">
@@ -1190,6 +1247,16 @@
 <div class="toast-container" id="toast-container"></div>
 
 <script>
+    // Helper to get the correct path relative to the app base directory
+    function getAppPath(path) {
+        const pathname = window.location.pathname;
+        const basePath = pathname.endsWith('/')
+            ? pathname.slice(0, -1)
+            : pathname.substring(0, pathname.lastIndexOf('/'));
+        const cleanPath = path.startsWith('/') ? path : '/' + path;
+        return window.location.origin + basePath + cleanPath;
+    }
+
     // DOM Elements
     const themeSelector = document.getElementById('theme-selector');
     const btnSections = document.getElementById('btn-sections');
@@ -2044,11 +2111,53 @@
         if (isAllowed === 'true') {
             initWorker();
         } else if (isAllowed === 'false') {
-            showOfflineDisabledMessage();
+            const currentLang = localStorage.getItem('rendercv_lang') || (navigator.language.startsWith('ru') ? 'ru' : 'en');
+            showOfflineDisabledMessage(currentLang);
         } else {
             showPermissionModal();
         }
     });
+
+    // Translations for permission modal
+    const modalTranslations = {
+        ru: {
+            title: "Разрешить автономную работу?",
+            desc: "Чтобы компилировать ваше резюме прямо в браузере без отправки данных на сервер, необходимо загрузить локальные библиотеки WebAssembly и среду Python (около 15 МБ при первой загрузке).",
+            remember: "Запомнить мой выбор",
+            decline: "Отмена",
+            allow: "Разрешить",
+            statusDenied: "Автономный компилятор отключен",
+            toastDenied: "Автономный компилятор отключен. Перезагрузите страницу и разрешите доступ для запуска."
+        },
+        en: {
+            title: "Enable Offline Compiler?",
+            desc: "To compile your resume directly in the browser without sending data to the server, you need to download local WebAssembly libraries and the Python runtime (approx. 15 MB on first load).",
+            remember: "Remember my choice",
+            decline: "Decline",
+            allow: "Allow",
+            statusDenied: "Offline compiler permission denied",
+            toastDenied: "Offline compiler disabled. Reload page and grant permission to activate."
+        }
+    };
+
+    function setModalLanguage(lang) {
+        document.getElementById('modal-title').textContent = modalTranslations[lang].title;
+        document.getElementById('modal-desc').textContent = modalTranslations[lang].desc;
+        document.getElementById('remember-text').textContent = modalTranslations[lang].remember;
+        document.getElementById('btn-decline-offline').textContent = modalTranslations[lang].decline;
+        document.getElementById('btn-allow-offline').textContent = modalTranslations[lang].allow;
+
+        // Update active class on buttons
+        const btnRu = document.getElementById('btn-lang-ru');
+        const btnEn = document.getElementById('btn-lang-en');
+        if (lang === 'ru') {
+            btnRu.classList.add('active');
+            btnEn.classList.remove('active');
+        } else {
+            btnEn.classList.add('active');
+            btnRu.classList.remove('active');
+        }
+    }
 
     // Permission Modal Management
     function showPermissionModal() {
@@ -2058,6 +2167,24 @@
         const btnAllow = document.getElementById('btn-allow-offline');
         const btnDecline = document.getElementById('btn-decline-offline');
         const rememberCheckbox = document.getElementById('remember-permission');
+        const btnRu = document.getElementById('btn-lang-ru');
+        const btnEn = document.getElementById('btn-lang-en');
+
+        // Set initial language based on browser/saved choice
+        let currentLang = localStorage.getItem('rendercv_lang') || (navigator.language.startsWith('ru') ? 'ru' : 'en');
+        setModalLanguage(currentLang);
+
+        btnRu.onclick = function() {
+            currentLang = 'ru';
+            localStorage.setItem('rendercv_lang', 'ru');
+            setModalLanguage('ru');
+        };
+
+        btnEn.onclick = function() {
+            currentLang = 'en';
+            localStorage.setItem('rendercv_lang', 'en');
+            setModalLanguage('en');
+        };
 
         btnAllow.onclick = function () {
             modal.classList.remove('visible');
@@ -2072,14 +2199,15 @@
             if (rememberCheckbox.checked) {
                 localStorage.setItem('rendercv_offline_allowed', 'false');
             }
-            showOfflineDisabledMessage();
+            showOfflineDisabledMessage(currentLang);
         };
     }
 
-    function showOfflineDisabledMessage() {
-        setStatus('error', 'Offline compiler permission denied');
+    function showOfflineDisabledMessage(lang = 'ru') {
+        const translations = modalTranslations[lang] || modalTranslations['en'];
+        setStatus('error', translations.statusDenied);
         btnRender.disabled = true;
-        showToast('Offline compiler disabled. Reload page and grant permission to activate.', 'warning');
+        showToast(translations.toastDenied, 'warning');
     }
 
     // Fetch Helper with Progress Tracking
@@ -2141,7 +2269,7 @@
     }
 
     async function initWorker() {
-        setStatus('compiling', 'Downloading RenderCV wheel package...');
+        setStatus('compiling', 'Downloading compiler assets...');
         loadingOverlay.classList.add('visible');
 
         const progressContainer = document.getElementById('loading-progress-container');
@@ -2150,17 +2278,17 @@
         const loadingSubstatus = document.getElementById('loading-substatus');
 
         progressContainer.style.display = 'block';
-        loadingStatus.textContent = 'Загрузка RenderCV...';
+        loadingStatus.textContent = 'Загрузка компилятора...';
 
         try {
-            const wheelUrl = window.location.origin + "/rendercv-2.8-py3-none-any.whl";
+            const wheelUrl = getAppPath("/rendercv-2.8-py3-none-any.whl");
             const wheelBytes = await fetchWithProgress(wheelUrl, (percent) => {
                 progressFill.style.width = percent + '%';
                 loadingSubstatus.textContent = `Загрузка: ${percent}%`;
             }, 'arraybuffer');
 
-            loadingStatus.textContent = 'Инициализация Python...';
-            loadingSubstatus.textContent = 'Подготовка окружения Pyodide...';
+            loadingStatus.textContent = 'Инициализация...';
+            loadingSubstatus.textContent = 'Подготовка окружения...';
             progressContainer.style.display = 'none';
 
             worker = new Worker('render_worker.js');
@@ -2189,7 +2317,7 @@
                     } else if (data.status === "error") {
                         setStatus('error', "Initialization Failed: " + data.error);
                         loadingOverlay.classList.remove('visible');
-                        showToast("Failed to initialize RenderCV: " + data.error, "error");
+                        showToast("Failed to initialize CV Resume Builder: " + data.error, "error");
                     }
                 } else if (data.type === "render_response") {
                     const req = pendingRequests[data.id];
@@ -2217,7 +2345,7 @@
         } catch (e) {
             console.error(e);
             setStatus('error', 'Download Failed');
-            showToast('Failed to download RenderCV wheel: ' + e.message, 'error');
+            showToast('Failed to download compiler: ' + e.message, 'error');
             loadingOverlay.classList.remove('visible');
         }
     }
@@ -2246,11 +2374,11 @@
         };
 
         const [rcvLib, faLib, faImpl, faGenFunc, faGenMap] = await Promise.all([
-            fetchWithProgress('/rendercv_typst/lib.typ', (p) => updateProgress(Math.round(p * 0.2)), 'text'),
-            fetchWithProgress('/typst_fontawesome/lib.typ', (p) => updateProgress(Math.round(20 + p * 0.2)), 'arraybuffer'),
-            fetchWithProgress('/typst_fontawesome/lib-impl.typ', (p) => updateProgress(Math.round(40 + p * 0.2)), 'arraybuffer'),
-            fetchWithProgress('/typst_fontawesome/lib-gen-func.typ', (p) => updateProgress(Math.round(60 + p * 0.2)), 'arraybuffer'),
-            fetchWithProgress('/typst_fontawesome/lib-gen-map.typ', (p) => updateProgress(Math.round(80 + p * 0.2)), 'arraybuffer')
+            fetchWithProgress(getAppPath('/rendercv_typst/lib.typ'), (p) => updateProgress(Math.round(p * 0.2)), 'text'),
+            fetchWithProgress(getAppPath('/typst_fontawesome/lib.typ'), (p) => updateProgress(Math.round(20 + p * 0.2)), 'arraybuffer'),
+            fetchWithProgress(getAppPath('/typst_fontawesome/lib-impl.typ'), (p) => updateProgress(Math.round(40 + p * 0.2)), 'arraybuffer'),
+            fetchWithProgress(getAppPath('/typst_fontawesome/lib-gen-func.typ'), (p) => updateProgress(Math.round(60 + p * 0.2)), 'arraybuffer'),
+            fetchWithProgress(getAppPath('/typst_fontawesome/lib-gen-map.typ'), (p) => updateProgress(Math.round(80 + p * 0.2)), 'arraybuffer')
         ]);
 
         // Rewrite the fontawesome import inside rendercvLib to VFS absolute path
@@ -2379,10 +2507,9 @@
 
         setStatus('compiling', `Loading fonts for ${fontFamily}...`);
 
-        const origin = window.location.origin;
-        const urlsToLoad = BASE_FONTS.map(path => origin + path);
+        const urlsToLoad = BASE_FONTS.map(path => getAppPath(path));
         if (FONT_MAP[fontFamily]) {
-            urlsToLoad.push(...FONT_MAP[fontFamily].map(path => origin + path));
+            urlsToLoad.push(...FONT_MAP[fontFamily].map(path => getAppPath(path)));
         }
 
         const typstObj = getCompilerObj();
@@ -2777,7 +2904,7 @@
                     `;
             }
 
-            showToast('RenderCV compilation failed', 'error');
+            showToast('CV compilation failed', 'error');
         }
 
         consoleContent.innerHTML = html;
@@ -2811,12 +2938,34 @@
     btnDownload.addEventListener('click', () => {
         if (!currentPdfBlob) return;
 
-        const theme = themeSelector.value || 'cv';
+        let filename = 'Resume';
+        try {
+            if (window.editor) {
+                const yamlContent = window.editor.getValue();
+                const doc = jsyaml.load(yamlContent);
+                if (doc && doc.cv) {
+                    let parts = [];
+                    if (doc.cv.name) {
+                        const name = doc.cv.name.trim().replace(/\s+/g, '_');
+                        if (name) parts.push(name);
+                    }
+                    if (doc.cv.headline) {
+                        const headline = doc.cv.headline.trim().replace(/\s+/g, '_');
+                        if (headline) parts.push(headline);
+                    }
+                    if (parts.length > 0) {
+                        filename = `Resume_${parts.join('_')}`;
+                    }
+                }
+            }
+        } catch (e) {
+            console.error("Error parsing YAML for download filename", e);
+        }
 
         const url = URL.createObjectURL(currentPdfBlob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `RenderCV_Resume_${theme}.pdf`;
+        a.download = `${filename}.pdf`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
