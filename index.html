@@ -1316,9 +1316,17 @@
                 border-radius: 6px 6px 0 0;
             }
 
-            /* Hide move actions in horizontal list on mobile */
+            /* Hide move actions in horizontal list on mobile by default, but show them on the active item */
             .form-sidebar .sidebar-item-actions {
                 display: none !important;
+            }
+            .form-sidebar .sidebar-item.active .sidebar-item-actions {
+                display: inline-flex !important;
+                gap: 6px;
+                margin-left: 0.5rem;
+                opacity: 1 !important;
+                transform: none !important;
+                align-items: center;
             }
 
             /* Make form main take proper padding */
