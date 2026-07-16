@@ -8,13 +8,23 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap"
+          rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://mozilla.github.io/pdf.js/build/pdf.mjs" type="module"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <!-- JS-YAML for Form Editor -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+
+    <!-- Typst.ts for client-side PDF compilation -->
+    <script type="module">
+        import * as Typst
+            from "https://cdn.jsdelivr.net/npm/@myriaddreamin/typst.ts/dist/esm/contrib/all-in-one-lite.bundle.js";
+
+        window.Typst = Typst;
+    </script>
 
     <!-- RequireJS for Monaco Editor -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
@@ -133,14 +143,32 @@
             transition: var(--transition);
         }
 
-        .status-dot.ready { background-color: var(--success); box-shadow: 0 0 8px var(--success); }
-        .status-dot.compiling { background-color: var(--warning); box-shadow: 0 0 8px var(--warning); animation: pulse 1.5s infinite; }
-        .status-dot.error { background-color: var(--error); box-shadow: 0 0 8px var(--error); }
+        .status-dot.ready {
+            background-color: var(--success);
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        .status-dot.compiling {
+            background-color: var(--warning);
+            box-shadow: 0 0 8px var(--warning);
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-dot.error {
+            background-color: var(--error);
+            box-shadow: 0 0 8px var(--error);
+        }
 
         @keyframes pulse {
-            0% { opacity: 0.4; }
-            50% { opacity: 1; }
-            100% { opacity: 0.4; }
+            0% {
+                opacity: 0.4;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0.4;
+            }
         }
 
         /* Select controls */
@@ -826,8 +854,91 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Permission Modal */
+        .permission-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(6, 7, 9, 0.85);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .permission-modal-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .permission-modal-content {
+            background: linear-gradient(135deg, rgba(20, 22, 28, 0.95), rgba(13, 14, 18, 0.95));
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 2.5rem;
+            width: 90%;
+            max-width: 480px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .permission-modal-overlay.visible .permission-modal-content {
+            transform: scale(1);
+        }
+
+        .permission-icon {
+            background: rgba(139, 92, 246, 0.1);
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        .permission-modal-content h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #ffffff;
+        }
+
+        .permission-modal-content p {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .permission-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        .permission-buttons button {
+            flex: 1;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
         }
 
         /* Toast notifications */
@@ -865,9 +976,17 @@
             }
         }
 
-        .toast.success { border-left: 3px solid var(--success); }
-        .toast.error { border-left: 3px solid var(--error); }
-        .toast.info { border-left: 3px solid var(--primary); }
+        .toast.success {
+            border-left: 3px solid var(--success);
+        }
+
+        .toast.error {
+            border-left: 3px solid var(--error);
+        }
+
+        .toast.info {
+            border-left: 3px solid var(--primary);
+        }
 
         .toast-close {
             margin-left: auto;
@@ -928,211 +1047,256 @@
 </head>
 <body>
 
-    <header>
-        <div class="brand">
-            <div class="brand-logo">R</div>
-            <span class="brand-name">RenderCV</span>
-            <span class="brand-tag">Live Editor</span>
+<header>
+    <div class="brand">
+        <div class="brand-logo">R</div>
+        <span class="brand-name">RenderCV</span>
+        <span class="brand-tag">Live Editor</span>
+    </div>
+
+    <div class="controls">
+        <div class="status-container">
+            <span class="status-dot" id="status-dot"></span>
+            <span id="status-text">Loading editor...</span>
         </div>
 
-        <div class="controls">
-            <div class="status-container">
-                <span class="status-dot" id="status-dot"></span>
-                <span id="status-text">Loading editor...</span>
-            </div>
+        <div class="select-wrapper">
+            <select id="theme-selector" disabled>
+                <option value="" disabled selected>Load example theme...</option>
+            </select>
+            <i data-lucide="chevron-down" class="chevron"></i>
+        </div>
 
-            <div class="select-wrapper">
-                <select id="theme-selector" disabled>
-                    <option value="" disabled selected>Load example theme...</option>
-                </select>
-                <i data-lucide="chevron-down" class="chevron"></i>
-            </div>
-
-            <!-- Sections Visibility Toggle Dropdown -->
-            <div class="dropdown-wrapper hidden-section" style="display: none">
-                <button id="btn-sections" class="btn btn-secondary" disabled>
-                    <i data-lucide="eye"></i>
-                    <span>Sections</span>
-                    <i data-lucide="chevron-down" style="width: 14px; height: 14px; margin-left: 0.1rem;"></i>
-                </button>
-                <div class="dropdown-menu" id="sections-dropdown">
-                    <div class="dropdown-header">Show/Hide Sections</div>
-                    <div class="dropdown-body" id="sections-checkbox-list">
-                        <div style="color: var(--text-muted); font-size: 0.8rem; padding: 0.5rem 0; text-align: center;">No sections found</div>
+        <!-- Sections Visibility Toggle Dropdown -->
+        <div class="dropdown-wrapper hidden-section" style="display: none">
+            <button id="btn-sections" class="btn btn-secondary" disabled>
+                <i data-lucide="eye"></i>
+                <span>Sections</span>
+                <i data-lucide="chevron-down" style="width: 14px; height: 14px; margin-left: 0.1rem;"></i>
+            </button>
+            <div class="dropdown-menu" id="sections-dropdown">
+                <div class="dropdown-header">Show/Hide Sections</div>
+                <div class="dropdown-body" id="sections-checkbox-list">
+                    <div style="color: var(--text-muted); font-size: 0.8rem; padding: 0.5rem 0; text-align: center;">No
+                        sections found
                     </div>
                 </div>
             </div>
+        </div>
 
-            <button id="btn-render" class="btn btn-primary" disabled>
-                <i data-lucide="refresh-cw"></i>
-                <span>Render PDF</span>
+        <button id="btn-render" class="btn btn-primary" disabled>
+            <i data-lucide="refresh-cw"></i>
+            <span>Render PDF</span>
+        </button>
+
+        <button id="btn-download" class="btn btn-secondary" disabled>
+            <i data-lucide="download"></i>
+            <span>Download</span>
+        </button>
+    </div>
+</header>
+
+<main class="workspace">
+    <!-- Left Panel: Editor & Logs -->
+    <div class="panel editor-panel">
+        <div class="editor-tabs">
+            <button class="tab-btn active" id="btn-tab-form">
+                <i data-lucide="edit-3"></i>
+                <span>Form Editor</span>
             </button>
-
-            <button id="btn-download" class="btn btn-secondary" disabled>
-                <i data-lucide="download"></i>
-                <span>Download</span>
+            <button class="tab-btn" id="btn-tab-yaml">
+                <i data-lucide="code"></i>
+                <span>YAML Code</span>
             </button>
         </div>
-    </header>
 
-    <main class="workspace">
-        <!-- Left Panel: Editor & Logs -->
-        <div class="panel editor-panel">
-            <div class="editor-tabs">
-                <button class="tab-btn active" id="btn-tab-form">
-                    <i data-lucide="edit-3"></i>
-                    <span>Form Editor</span>
-                </button>
-                <button class="tab-btn" id="btn-tab-yaml">
-                    <i data-lucide="code"></i>
-                    <span>YAML Code</span>
-                </button>
-            </div>
+        <!-- Form Editor Container -->
+        <div id="form-editor-container" class="form-editor-layout">
+            <div class="form-sidebar" id="form-sidebar"></div>
+            <div class="form-main" id="form-main"></div>
+        </div>
 
-            <!-- Form Editor Container -->
-            <div id="form-editor-container" class="form-editor-layout">
-                <div class="form-sidebar" id="form-sidebar"></div>
-                <div class="form-main" id="form-main"></div>
-            </div>
+        <div id="editor-container" style="display: none;"></div>
 
-            <div id="editor-container" style="display: none;"></div>
-
-            <!-- Collapsible Console/Error panel -->
-            <div class="console-panel" id="console-panel">
-                <div class="console-header" id="console-header">
-                    <div class="console-title" id="console-title">
-                        <i data-lucide="terminal"></i>
-                        <span>Validation Log</span>
-                        <span id="error-count" style="display:none; background-color: var(--error); color: white; border-radius: 10px; padding: 0.05rem 0.4rem; font-size: 0.7rem; font-weight: 700;">0</span>
-                    </div>
-                    <i data-lucide="chevron-up" id="console-chevron" style="transition: var(--transition)"></i>
+        <!-- Collapsible Console/Error panel -->
+        <div class="console-panel" id="console-panel">
+            <div class="console-header" id="console-header">
+                <div class="console-title" id="console-title">
+                    <i data-lucide="terminal"></i>
+                    <span>Validation Log</span>
+                    <span id="error-count"
+                          style="display:none; background-color: var(--error); color: white; border-radius: 10px; padding: 0.05rem 0.4rem; font-size: 0.7rem; font-weight: 700;">0</span>
                 </div>
-                <div class="console-content" id="console-content">
-                    <!-- Loaded dynamically -->
-                </div>
+                <i data-lucide="chevron-up" id="console-chevron" style="transition: var(--transition)"></i>
+            </div>
+            <div class="console-content" id="console-content">
+                <!-- Loaded dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Panel: PDF Preview -->
+    <div class="panel preview-panel">
+        <div class="loading-overlay" id="loading-overlay">
+            <div class="spinner"></div>
+            <div style="font-weight: 600;" id="loading-status">Compiling Typst to PDF...</div>
+            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;" id="loading-substatus">
+                This takes less than a second
+            </div>
+            <div class="progress-bar-container" id="loading-progress-container"
+                 style="display: none; width: 200px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-top: 0.75rem;">
+                <div class="progress-bar-fill" id="loading-progress-fill"
+                     style="width: 0%; height: 100%; background: var(--primary); transition: width 0.1s ease;"></div>
             </div>
         </div>
 
-        <!-- Right Panel: PDF Preview -->
-        <div class="panel preview-panel">
-            <div class="loading-overlay" id="loading-overlay">
-                <div class="spinner"></div>
-                <div style="font-weight: 600;">Compiling Typst to PDF...</div>
-                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">This takes less than a second</div>
-            </div>
-
-            <div class="preview-placeholder" id="preview-placeholder">
-                <i data-lucide="file-text"></i>
-                <h3>PDF Preview</h3>
-                <p>Click <strong>Render PDF</strong> or press <kbd style="background: rgba(255,255,255,0.06); padding: 0.1rem 0.3rem; border-radius: 4px; font-size: 0.75rem; border: 1px solid var(--border-color);">Cmd + Enter</kbd> to compile your YAML resume.</p>
-            </div>
-
-            <iframe class="preview-iframe" id="preview-iframe" style="display: none;"></iframe>
+        <div class="preview-placeholder" id="preview-placeholder">
+            <i data-lucide="file-text"></i>
+            <h3>PDF Preview</h3>
+            <p>Click <strong>Render PDF</strong> or press <kbd
+                    style="background: rgba(255,255,255,0.06); padding: 0.1rem 0.3rem; border-radius: 4px; font-size: 0.75rem; border: 1px solid var(--border-color);">Cmd
+                + Enter</kbd> to compile your YAML resume.</p>
         </div>
-    </main>
 
-    <div class="toast-container" id="toast-container"></div>
+        <iframe class="preview-iframe" id="preview-iframe" style="display: none;"></iframe>
+    </div>
+</main>
 
-    <script>
-        // DOM Elements
-        const themeSelector = document.getElementById('theme-selector');
-        const btnSections = document.getElementById('btn-sections');
-        const sectionsDropdown = document.getElementById('sections-dropdown');
-        const sectionsCheckboxList = document.getElementById('sections-checkbox-list');
-        const btnRender = document.getElementById('btn-render');
-        const btnDownload = document.getElementById('btn-download');
-        const statusDot = document.getElementById('status-dot');
-        const statusText = document.getElementById('status-text');
-        const previewIframe = document.getElementById('preview-iframe');
-        const previewPlaceholder = document.getElementById('preview-placeholder');
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const consolePanel = document.getElementById('console-panel');
-        const consoleHeader = document.getElementById('console-header');
-        const consoleContent = document.getElementById('console-content');
-        const consoleChevron = document.getElementById('console-chevron');
-        const consoleTitle = document.getElementById('console-title');
-        const errorCountBadge = document.getElementById('error-count');
-        const toastContainer = document.getElementById('toast-container');
+<!-- Permission Dialog Modal -->
+<div class="permission-modal-overlay" id="permission-modal">
+    <div class="permission-modal-content">
+        <div class="permission-icon">
+            <i data-lucide="shield-check" style="width: 48px; height: 48px; color: var(--primary);"></i>
+        </div>
+        <h2>Разрешить автономную работу?</h2>
+        <p>Чтобы компилировать ваше резюме прямо в браузере без отправки данных на сервер, необходимо загрузить
+            локальные библиотеки WebAssembly и среду Python (около 15 МБ при первой загрузке).</p>
+        <div class="permission-checkbox-container" style="margin-bottom: 1rem;">
+            <label style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; user-select: none;">
+                <input type="checkbox" id="remember-permission" checked style="accent-color: var(--primary);">
+                <span style="font-size: 0.9rem; color: var(--text-secondary);">Запомнить мой выбор</span>
+            </label>
+        </div>
+        <div class="permission-buttons">
+            <button class="btn btn-secondary" id="btn-decline-offline"
+                    style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1);">
+                Отмена
+            </button>
+            <button class="btn" id="btn-allow-offline">Разрешить</button>
+        </div>
+    </div>
+</div>
 
-        let currentPdfBlob = null;
-        let isConsoleExpanded = false;
+<div class="toast-container" id="toast-container"></div>
 
-        // Sections state
-        let allSections = [];
-        let hiddenSections = [];
+<script>
+    // DOM Elements
+    const themeSelector = document.getElementById('theme-selector');
+    const btnSections = document.getElementById('btn-sections');
+    const sectionsDropdown = document.getElementById('sections-dropdown');
+    const sectionsCheckboxList = document.getElementById('sections-checkbox-list');
+    const btnRender = document.getElementById('btn-render');
+    const btnDownload = document.getElementById('btn-download');
+    const statusDot = document.getElementById('status-dot');
+    const statusText = document.getElementById('status-text');
+    const previewIframe = document.getElementById('preview-iframe');
+    const previewPlaceholder = document.getElementById('preview-placeholder');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const consolePanel = document.getElementById('console-panel');
+    const consoleHeader = document.getElementById('console-header');
+    const consoleContent = document.getElementById('console-content');
+    const consoleChevron = document.getElementById('console-chevron');
+    const consoleTitle = document.getElementById('console-title');
+    const errorCountBadge = document.getElementById('error-count');
+    const toastContainer = document.getElementById('toast-container');
 
-        // CV Form Controller definition
-        const cvForm = {
-            data: null,
-            activeTab: 'form',
-            activeSection: 'basic_info',
-            expandedItems: {},
+    let currentPdfBlob = null;
+    let isConsoleExpanded = false;
 
-            schemas: {
-                education: { institution: '', area: '', degree: '', location: '', start_date: '', end_date: '', highlights: [] },
-                experience: { company: '', position: '', location: '', start_date: '', end_date: '', highlights: [] },
-                projects: { name: '', summary: '', start_date: '', end_date: '', highlights: [] },
-                publications: { title: '', authors: [], journal: '', date: '', doi: '', url: '' },
-                skills: { label: '', details: '' },
-                selected_honors: { bullet: '' },
-                patents: { number: '' },
-                invited_talks: { reversed_number: '' }
+    // Sections state
+    let allSections = [];
+    let hiddenSections = [];
+
+    // CV Form Controller definition
+    const cvForm = {
+        data: null,
+        activeTab: 'form',
+        activeSection: 'basic_info',
+        expandedItems: {},
+
+        schemas: {
+            education: {
+                institution: '',
+                area: '',
+                degree: '',
+                location: '',
+                start_date: '',
+                end_date: '',
+                highlights: []
             },
+            experience: {company: '', position: '', location: '', start_date: '', end_date: '', highlights: []},
+            projects: {name: '', summary: '', start_date: '', end_date: '', highlights: []},
+            publications: {title: '', authors: [], journal: '', date: '', doi: '', url: ''},
+            skills: {label: '', details: ''},
+            selected_honors: {bullet: ''},
+            patents: {number: ''},
+            invited_talks: {reversed_number: ''}
+        },
 
-            init() {
-                const btnTabForm = document.getElementById('btn-tab-form');
-                const btnTabYaml = document.getElementById('btn-tab-yaml');
-                const formEditorContainer = document.getElementById('form-editor-container');
-                const editorContainer = document.getElementById('editor-container');
+        init() {
+            const btnTabForm = document.getElementById('btn-tab-form');
+            const btnTabYaml = document.getElementById('btn-tab-yaml');
+            const formEditorContainer = document.getElementById('form-editor-container');
+            const editorContainer = document.getElementById('editor-container');
 
-                btnTabForm.addEventListener('click', () => {
-                    this.switchTab('form');
-                });
+            btnTabForm.addEventListener('click', () => {
+                this.switchTab('form');
+            });
 
-                btnTabYaml.addEventListener('click', () => {
-                    this.switchTab('yaml');
-                });
-            },
+            btnTabYaml.addEventListener('click', () => {
+                this.switchTab('yaml');
+            });
+        },
 
-            switchTab(tab) {
-                this.activeTab = tab;
-                const btnTabForm = document.getElementById('btn-tab-form');
-                const btnTabYaml = document.getElementById('btn-tab-yaml');
-                const formEditorContainer = document.getElementById('form-editor-container');
-                const editorContainer = document.getElementById('editor-container');
+        switchTab(tab) {
+            this.activeTab = tab;
+            const btnTabForm = document.getElementById('btn-tab-form');
+            const btnTabYaml = document.getElementById('btn-tab-yaml');
+            const formEditorContainer = document.getElementById('form-editor-container');
+            const editorContainer = document.getElementById('editor-container');
 
-                if (tab === 'form') {
-                    btnTabForm.classList.add('active');
-                    btnTabYaml.classList.remove('active');
-                    formEditorContainer.style.display = 'flex';
-                    editorContainer.style.display = 'none';
-                    this.loadFromEditor();
-                } else {
-                    btnTabYaml.classList.add('active');
-                    btnTabForm.classList.remove('active');
-                    editorContainer.style.display = 'block';
-                    formEditorContainer.style.display = 'none';
-                    if (window.editor) {
-                        window.editor.layout();
-                    }
+            if (tab === 'form') {
+                btnTabForm.classList.add('active');
+                btnTabYaml.classList.remove('active');
+                formEditorContainer.style.display = 'flex';
+                editorContainer.style.display = 'none';
+                this.loadFromEditor();
+            } else {
+                btnTabYaml.classList.add('active');
+                btnTabForm.classList.remove('active');
+                editorContainer.style.display = 'block';
+                formEditorContainer.style.display = 'none';
+                if (window.editor) {
+                    window.editor.layout();
                 }
-            },
+            }
+        },
 
-            loadFromEditor() {
-                if (!window.editor) return;
-                const yamlText = window.editor.getValue();
-                try {
-                    const parsed = jsyaml.load(yamlText);
-                    if (parsed && typeof parsed === 'object') {
-                        this.data = parsed;
-                        if (!this.data.cv) this.data.cv = {};
-                        if (!this.data.cv.sections) this.data.cv.sections = {};
-                        this.render();
-                    }
-                } catch (e) {
-                    console.error("YAML parsing error inside Form Editor", e);
-                    const formMain = document.getElementById('form-main');
-                    formMain.innerHTML = `
+        loadFromEditor() {
+            if (!window.editor) return;
+            const yamlText = window.editor.getValue();
+            try {
+                const parsed = jsyaml.load(yamlText);
+                if (parsed && typeof parsed === 'object') {
+                    this.data = parsed;
+                    if (!this.data.cv) this.data.cv = {};
+                    if (!this.data.cv.sections) this.data.cv.sections = {};
+                    this.render();
+                }
+            } catch (e) {
+                console.error("YAML parsing error inside Form Editor", e);
+                const formMain = document.getElementById('form-main');
+                formMain.innerHTML = `
                         <div class="empty-state">
                             <i data-lucide="alert-triangle" style="color: var(--warning); width: 48px; height: 48px;"></i>
                             <h3>Cannot Load Form Editor</h3>
@@ -1143,77 +1307,77 @@
                             <button class="btn btn-secondary btn-sm" style="margin-top: 1rem;" onclick="cvForm.switchTab('yaml')">Switch to YAML Code</button>
                         </div>
                     `;
-                    const formSidebar = document.getElementById('form-sidebar');
-                    formSidebar.innerHTML = '';
-                    lucide.createIcons({ node: formMain });
-                }
-            },
-
-            updateEditor() {
-                if (!window.editor || !this.data) return;
-                try {
-                    const yamlText = jsyaml.dump(this.data, {
-                        indent: 2,
-                        noArrayIndent: false,
-                        lineWidth: -1,
-                        quotingType: '"',
-                        forceQuotes: false
-                    });
-                    window.editor.setValue(yamlText);
-                } catch (e) {
-                    console.error("YAML serialization error", e);
-                }
-            },
-
-            render() {
-                this.renderSidebar();
-                this.renderActiveSection();
-            },
-
-            renderSidebar() {
                 const formSidebar = document.getElementById('form-sidebar');
                 formSidebar.innerHTML = '';
+                lucide.createIcons({node: formMain});
+            }
+        },
 
-                const staticItems = [
-                    { id: 'basic_info', label: 'Basic Info', icon: 'user' },
-                    { id: 'social_networks', label: 'Social Networks', icon: 'share-2' }
-                ];
-
-                staticItems.forEach(item => {
-                    const el = document.createElement('div');
-                    el.className = `sidebar-item ${this.activeSection === item.id ? 'active' : ''}`;
-                    el.innerHTML = `<i data-lucide="${item.icon}"></i><span>${item.label}</span>`;
-                    el.onclick = () => {
-                        this.activeSection = item.id;
-                        this.render();
-                    };
-                    formSidebar.appendChild(el);
+        updateEditor() {
+            if (!window.editor || !this.data) return;
+            try {
+                const yamlText = jsyaml.dump(this.data, {
+                    indent: 2,
+                    noArrayIndent: false,
+                    lineWidth: -1,
+                    quotingType: '"',
+                    forceQuotes: false
                 });
+                window.editor.setValue(yamlText);
+            } catch (e) {
+                console.error("YAML serialization error", e);
+            }
+        },
 
-                const separator = document.createElement('div');
-                separator.style.height = '1px';
-                separator.style.background = 'var(--border-color)';
-                separator.style.margin = '0.5rem 0';
-                formSidebar.appendChild(separator);
+        render() {
+            this.renderSidebar();
+            this.renderActiveSection();
+        },
 
-                const sectionsHeader = document.createElement('div');
-                sectionsHeader.style.fontSize = '0.75rem';
-                sectionsHeader.style.fontWeight = '600';
-                sectionsHeader.style.textTransform = 'uppercase';
-                sectionsHeader.style.letterSpacing = '0.05em';
-                sectionsHeader.style.color = 'var(--text-muted)';
-                sectionsHeader.style.padding = '0.25rem 0.75rem';
-                sectionsHeader.innerHTML = '<span>CV Sections</span>';
-                formSidebar.appendChild(sectionsHeader);
+        renderSidebar() {
+            const formSidebar = document.getElementById('form-sidebar');
+            formSidebar.innerHTML = '';
 
-                const sections = this.data.cv.sections || {};
-                const sectionNames = Object.keys(sections);
+            const staticItems = [
+                {id: 'basic_info', label: 'Basic Info', icon: 'user'},
+                {id: 'social_networks', label: 'Social Networks', icon: 'share-2'}
+            ];
 
-                sectionNames.forEach((secName, idx) => {
-                    const isVisible = !hiddenSections.includes(secName);
-                    const el = document.createElement('div');
-                    el.className = `sidebar-item ${this.activeSection === secName ? 'active' : ''} ${isVisible ? '' : 'hidden-section'}`;
-                    el.innerHTML = `
+            staticItems.forEach(item => {
+                const el = document.createElement('div');
+                el.className = `sidebar-item ${this.activeSection === item.id ? 'active' : ''}`;
+                el.innerHTML = `<i data-lucide="${item.icon}"></i><span>${item.label}</span>`;
+                el.onclick = () => {
+                    this.activeSection = item.id;
+                    this.render();
+                };
+                formSidebar.appendChild(el);
+            });
+
+            const separator = document.createElement('div');
+            separator.style.height = '1px';
+            separator.style.background = 'var(--border-color)';
+            separator.style.margin = '0.5rem 0';
+            formSidebar.appendChild(separator);
+
+            const sectionsHeader = document.createElement('div');
+            sectionsHeader.style.fontSize = '0.75rem';
+            sectionsHeader.style.fontWeight = '600';
+            sectionsHeader.style.textTransform = 'uppercase';
+            sectionsHeader.style.letterSpacing = '0.05em';
+            sectionsHeader.style.color = 'var(--text-muted)';
+            sectionsHeader.style.padding = '0.25rem 0.75rem';
+            sectionsHeader.innerHTML = '<span>CV Sections</span>';
+            formSidebar.appendChild(sectionsHeader);
+
+            const sections = this.data.cv.sections || {};
+            const sectionNames = Object.keys(sections);
+
+            sectionNames.forEach((secName, idx) => {
+                const isVisible = !hiddenSections.includes(secName);
+                const el = document.createElement('div');
+                el.className = `sidebar-item ${this.activeSection === secName ? 'active' : ''} ${isVisible ? '' : 'hidden-section'}`;
+                el.innerHTML = `
                         <i data-lucide="folder"></i>
                         <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">${this.escapeHtml(secName)}</span>
                         <div class="sidebar-item-actions">
@@ -1228,42 +1392,42 @@
                             </button>
                         </div>
                     `;
-                    el.onclick = () => {
-                        this.activeSection = secName;
-                        this.render();
-                    };
-                    formSidebar.appendChild(el);
-                });
+                el.onclick = () => {
+                    this.activeSection = secName;
+                    this.render();
+                };
+                formSidebar.appendChild(el);
+            });
 
-                const addSecBtn = document.createElement('button');
-                addSecBtn.className = 'btn btn-secondary btn-sm';
-                addSecBtn.style.margin = '0.5rem 0.25rem 0 0.25rem';
-                addSecBtn.innerHTML = '<i data-lucide="plus" style="width: 14px; height: 14px; margin-right: 0.25rem;"></i>Add Section';
-                addSecBtn.onclick = () => this.addNewSectionPrompt();
-                formSidebar.appendChild(addSecBtn);
+            const addSecBtn = document.createElement('button');
+            addSecBtn.className = 'btn btn-secondary btn-sm';
+            addSecBtn.style.margin = '0.5rem 0.25rem 0 0.25rem';
+            addSecBtn.innerHTML = '<i data-lucide="plus" style="width: 14px; height: 14px; margin-right: 0.25rem;"></i>Add Section';
+            addSecBtn.onclick = () => this.addNewSectionPrompt();
+            formSidebar.appendChild(addSecBtn);
 
-                lucide.createIcons({ node: formSidebar });
-            },
+            lucide.createIcons({node: formSidebar});
+        },
 
-            renderActiveSection() {
-                const formMain = document.getElementById('form-main');
-                formMain.innerHTML = '';
+        renderActiveSection() {
+            const formMain = document.getElementById('form-main');
+            formMain.innerHTML = '';
 
-                if (this.activeSection === 'basic_info') {
-                    this.renderBasicInfo(formMain);
-                } else if (this.activeSection === 'social_networks') {
-                    this.renderSocialNetworks(formMain);
-                } else {
-                    this.renderCVSection(formMain, this.activeSection);
-                }
+            if (this.activeSection === 'basic_info') {
+                this.renderBasicInfo(formMain);
+            } else if (this.activeSection === 'social_networks') {
+                this.renderSocialNetworks(formMain);
+            } else {
+                this.renderCVSection(formMain, this.activeSection);
+            }
 
-                lucide.createIcons({ node: formMain });
-            },
+            lucide.createIcons({node: formMain});
+        },
 
-            renderBasicInfo(container) {
-                const cv = this.data.cv;
+        renderBasicInfo(container) {
+            const cv = this.data.cv;
 
-                container.innerHTML = `
+            container.innerHTML = `
                     <div class="form-section-title">
                         <span>Basic Info</span>
                     </div>
@@ -1312,21 +1476,21 @@
                     </div>
                 `;
 
-                const fields = ['name', 'headline', 'email', 'phone', 'location', 'website', 'photo'];
-                fields.forEach(f => {
-                    const input = document.getElementById(`basic-${f}`);
-                    input.addEventListener('input', (e) => {
-                        cv[f] = e.target.value || null;
-                        this.updateEditor();
-                    });
+            const fields = ['name', 'headline', 'email', 'phone', 'location', 'website', 'photo'];
+            fields.forEach(f => {
+                const input = document.getElementById(`basic-${f}`);
+                input.addEventListener('input', (e) => {
+                    cv[f] = e.target.value || null;
+                    this.updateEditor();
                 });
-            },
+            });
+        },
 
-            renderSocialNetworks(container) {
-                const cv = this.data.cv;
-                if (!cv.social_networks) cv.social_networks = [];
+        renderSocialNetworks(container) {
+            const cv = this.data.cv;
+            if (!cv.social_networks) cv.social_networks = [];
 
-                container.innerHTML = `
+            container.innerHTML = `
                     <div class="form-section-title">
                         <span>Social Networks</span>
                         <button class="btn btn-secondary btn-sm" onclick="cvForm.addSocialNetwork()">
@@ -1342,16 +1506,16 @@
                     <div id="social-list" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
                 `;
 
-                const socialList = document.getElementById('social-list');
-                if (cv.social_networks.length === 0) {
-                    socialList.innerHTML = `<div class="empty-state">No social networks added. Click 'Add Network' to add one.</div>`;
-                    return;
-                }
+            const socialList = document.getElementById('social-list');
+            if (cv.social_networks.length === 0) {
+                socialList.innerHTML = `<div class="empty-state">No social networks added. Click 'Add Network' to add one.</div>`;
+                return;
+            }
 
-                cv.social_networks.forEach((net, idx) => {
-                    const row = document.createElement('div');
-                    row.className = 'form-card expanded';
-                    row.innerHTML = `
+            cv.social_networks.forEach((net, idx) => {
+                const row = document.createElement('div');
+                row.className = 'form-card expanded';
+                row.innerHTML = `
                         <div class="form-card-body" style="display:flex; flex-direction:row; gap:1rem; align-items:flex-end;">
                             <div class="form-group" style="flex:1; margin-bottom:0;">
                                 <label>Network</label>
@@ -1366,43 +1530,43 @@
                             </button>
                         </div>
                     `;
-                    socialList.appendChild(row);
+                socialList.appendChild(row);
+            });
+
+            socialList.querySelectorAll('.social-net-name').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const idx = parseInt(e.target.dataset.idx);
+                    cv.social_networks[idx].network = e.target.value;
+                    this.updateEditor();
                 });
+            });
 
-                socialList.querySelectorAll('.social-net-name').forEach(input => {
-                    input.addEventListener('input', (e) => {
-                        const idx = parseInt(e.target.dataset.idx);
-                        cv.social_networks[idx].network = e.target.value;
-                        this.updateEditor();
-                    });
+            socialList.querySelectorAll('.social-net-user').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const idx = parseInt(e.target.dataset.idx);
+                    cv.social_networks[idx].username = e.target.value;
+                    this.updateEditor();
                 });
+            });
+        },
 
-                socialList.querySelectorAll('.social-net-user').forEach(input => {
-                    input.addEventListener('input', (e) => {
-                        const idx = parseInt(e.target.dataset.idx);
-                        cv.social_networks[idx].username = e.target.value;
-                        this.updateEditor();
-                    });
-                });
-            },
+        addSocialNetwork() {
+            this.data.cv.social_networks.push({network: 'GitHub', username: ''});
+            this.updateEditor();
+            this.renderActiveSection();
+        },
 
-            addSocialNetwork() {
-                this.data.cv.social_networks.push({ network: 'GitHub', username: '' });
-                this.updateEditor();
-                this.renderActiveSection();
-            },
+        deleteSocialNetwork(idx) {
+            this.data.cv.social_networks.splice(idx, 1);
+            this.updateEditor();
+            this.renderActiveSection();
+        },
 
-            deleteSocialNetwork(idx) {
-                this.data.cv.social_networks.splice(idx, 1);
-                this.updateEditor();
-                this.renderActiveSection();
-            },
+        renderCVSection(container, sectionName) {
+            const sections = this.data.cv.sections;
+            const items = sections[sectionName] || [];
 
-            renderCVSection(container, sectionName) {
-                const sections = this.data.cv.sections;
-                const items = sections[sectionName] || [];
-
-                container.innerHTML = `
+            container.innerHTML = `
                     <div class="form-section-title">
                         <input type="text" value="${this.escapeHtml(sectionName)}" onchange="cvForm.renameSection('${this.escapeHtml(sectionName)}', this.value)">
                         <div style="display:flex; gap:0.5rem; align-items:center;">
@@ -1418,32 +1582,32 @@
                     <div id="section-items" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
                 `;
 
-                const itemsContainer = document.getElementById('section-items');
+            const itemsContainer = document.getElementById('section-items');
 
-                if (items.length === 0) {
-                    itemsContainer.innerHTML = `<div class="empty-state">No items in this section. Click 'Add Item' to create one.</div>`;
-                    return;
+            if (items.length === 0) {
+                itemsContainer.innerHTML = `<div class="empty-state">No items in this section. Click 'Add Item' to create one.</div>`;
+                return;
+            }
+
+            items.forEach((item, idx) => {
+                const isTextItem = typeof item === 'string';
+                const expandedKey = `${sectionName}_${idx}`;
+                const isExpanded = this.expandedItems[expandedKey] !== false;
+
+                const card = document.createElement('div');
+                card.className = `form-card ${isExpanded ? 'expanded' : ''}`;
+
+                let headerText = `Item #${idx + 1}`;
+                if (isTextItem) {
+                    headerText = item.substring(0, 50) + (item.length > 50 ? '...' : '');
+                } else if (item) {
+                    headerText = item.institution || item.company || item.name || item.title || item.label || item.bullet || item.number || item.reversed_number || headerText;
+                    if (typeof headerText !== 'string') {
+                        headerText = `Item #${idx + 1}`;
+                    }
                 }
 
-                items.forEach((item, idx) => {
-                    const isTextItem = typeof item === 'string';
-                    const expandedKey = `${sectionName}_${idx}`;
-                    const isExpanded = this.expandedItems[expandedKey] !== false;
-
-                    const card = document.createElement('div');
-                    card.className = `form-card ${isExpanded ? 'expanded' : ''}`;
-
-                    let headerText = `Item #${idx + 1}`;
-                    if (isTextItem) {
-                        headerText = item.substring(0, 50) + (item.length > 50 ? '...' : '');
-                    } else if (item) {
-                        headerText = item.institution || item.company || item.name || item.title || item.label || item.bullet || item.number || item.reversed_number || headerText;
-                        if (typeof headerText !== 'string') {
-                            headerText = `Item #${idx + 1}`;
-                        }
-                    }
-
-                    card.innerHTML = `
+                card.innerHTML = `
                         <div class="form-card-header" onclick="cvForm.toggleItemExpand('${expandedKey}')">
                             <span class="form-card-title">
                                 <i data-lucide="${isExpanded ? 'chevron-down' : 'chevron-right'}" style="width: 16px; height:16px;"></i>
@@ -1456,747 +1620,287 @@
                         <div class="form-card-body"></div>
                     `;
 
-                    const cardBody = card.querySelector('.form-card-body');
+                const cardBody = card.querySelector('.form-card-body');
 
-                    if (isTextItem) {
-                        cardBody.innerHTML = `
+                if (isTextItem) {
+                    cardBody.innerHTML = `
                             <div class="form-group" style="margin-bottom:0;">
                                 <label>Content</label>
                                 <textarea class="form-control text-item-input" style="min-height:80px;" data-idx="${idx}">${this.escapeHtml(item)}</textarea>
                             </div>
                         `;
-                        cardBody.querySelector('.text-item-input').addEventListener('input', (e) => {
-                            sections[sectionName][idx] = e.target.value;
-                            this.updateEditor();
-                            const headText = e.target.value.substring(0, 50) + (e.target.value.length > 50 ? '...' : '');
-                            card.querySelector('.form-card-title span').textContent = headText || `Item #${idx + 1}`;
-                        });
-                    } else if (item && typeof item === 'object') {
-                        const keys = Object.keys(item);
+                    cardBody.querySelector('.text-item-input').addEventListener('input', (e) => {
+                        sections[sectionName][idx] = e.target.value;
+                        this.updateEditor();
+                        const headText = e.target.value.substring(0, 50) + (e.target.value.length > 50 ? '...' : '');
+                        card.querySelector('.form-card-title span').textContent = headText || `Item #${idx + 1}`;
+                    });
+                } else if (item && typeof item === 'object') {
+                    const keys = Object.keys(item);
 
-                        keys.forEach(key => {
-                            const val = item[key];
-                            const formGroup = document.createElement('div');
-                            formGroup.className = 'form-group';
+                    keys.forEach(key => {
+                        const val = item[key];
+                        const formGroup = document.createElement('div');
+                        formGroup.className = 'form-group';
 
-                            const label = document.createElement('label');
-                            label.textContent = key.replace(/_/g, ' ');
-                            formGroup.appendChild(label);
+                        const label = document.createElement('label');
+                        label.textContent = key.replace(/_/g, ' ');
+                        formGroup.appendChild(label);
 
-                            if (Array.isArray(val)) {
-                                const listEditor = document.createElement('div');
-                                listEditor.className = 'list-editor';
+                        if (Array.isArray(val)) {
+                            const listEditor = document.createElement('div');
+                            listEditor.className = 'list-editor';
 
-                                val.forEach((subval, subidx) => {
-                                    const itemRow = document.createElement('div');
-                                    itemRow.className = 'list-editor-item';
-                                    itemRow.innerHTML = `
+                            val.forEach((subval, subidx) => {
+                                const itemRow = document.createElement('div');
+                                itemRow.className = 'list-editor-item';
+                                itemRow.innerHTML = `
                                         <input type="text" class="form-control list-subitem-input" data-key="${key}" data-idx="${idx}" data-subidx="${subidx}" value="${this.escapeHtml(subval)}">
                                         <button class="btn-icon btn-danger" onclick="cvForm.deleteListSubitem('${this.escapeHtml(sectionName)}', ${idx}, '${key}', ${subidx})">
                                             <i data-lucide="minus"></i>
                                         </button>
                                     `;
-                                    listEditor.appendChild(itemRow);
-                                });
+                                listEditor.appendChild(itemRow);
+                            });
 
-                                const addSubBtn = document.createElement('button');
-                                addSubBtn.className = 'btn btn-secondary btn-sm';
-                                addSubBtn.style.alignSelf = 'flex-start';
-                                addSubBtn.innerHTML = '<i data-lucide="plus" style="width: 12px; height: 12px; margin-right: 0.25rem;"></i>Add Bullet/Author';
-                                addSubBtn.onclick = () => this.addListSubitem(sectionName, idx, key);
+                            const addSubBtn = document.createElement('button');
+                            addSubBtn.className = 'btn btn-secondary btn-sm';
+                            addSubBtn.style.alignSelf = 'flex-start';
+                            addSubBtn.innerHTML = '<i data-lucide="plus" style="width: 12px; height: 12px; margin-right: 0.25rem;"></i>Add Bullet/Author';
+                            addSubBtn.onclick = () => this.addListSubitem(sectionName, idx, key);
 
-                                formGroup.appendChild(listEditor);
-                                formGroup.appendChild(addSubBtn);
+                            formGroup.appendChild(listEditor);
+                            formGroup.appendChild(addSubBtn);
 
-                                listEditor.querySelectorAll('.list-subitem-input').forEach(input => {
-                                    input.addEventListener('input', (e) => {
-                                        const k = e.target.dataset.key;
-                                        const i = parseInt(e.target.dataset.idx);
-                                        const s = parseInt(e.target.dataset.subidx);
-                                        sections[sectionName][i][k][s] = e.target.value;
-                                        this.updateEditor();
-                                    });
-                                });
-
-                            } else {
-                                const input = document.createElement('input');
-                                input.type = 'text';
-                                input.className = 'form-control item-field-input';
-                                input.dataset.key = key;
-                                input.dataset.idx = idx;
-                                input.value = this.escapeHtml(val || '');
-                                formGroup.appendChild(input);
-
+                            listEditor.querySelectorAll('.list-subitem-input').forEach(input => {
                                 input.addEventListener('input', (e) => {
                                     const k = e.target.dataset.key;
                                     const i = parseInt(e.target.dataset.idx);
-                                    sections[sectionName][i][k] = e.target.value;
+                                    const s = parseInt(e.target.dataset.subidx);
+                                    sections[sectionName][i][k][s] = e.target.value;
                                     this.updateEditor();
-
-                                    const previewKeys = ['institution', 'company', 'name', 'title', 'label', 'bullet', 'number', 'reversed_number'];
-                                    if (previewKeys.includes(k)) {
-                                        card.querySelector('.form-card-title span').textContent = e.target.value || `Item #${i + 1}`;
-                                    }
                                 });
-                            }
+                            });
 
-                            cardBody.appendChild(formGroup);
-                        });
-                    }
+                        } else {
+                            const input = document.createElement('input');
+                            input.type = 'text';
+                            input.className = 'form-control item-field-input';
+                            input.dataset.key = key;
+                            input.dataset.idx = idx;
+                            input.value = this.escapeHtml(val || '');
+                            formGroup.appendChild(input);
 
-                    itemsContainer.appendChild(card);
-                });
-            },
+                            input.addEventListener('input', (e) => {
+                                const k = e.target.dataset.key;
+                                const i = parseInt(e.target.dataset.idx);
+                                sections[sectionName][i][k] = e.target.value;
+                                this.updateEditor();
 
-            toggleItemExpand(key) {
-                this.expandedItems[key] = this.expandedItems[key] === false;
-                this.renderActiveSection();
-            },
+                                const previewKeys = ['institution', 'company', 'name', 'title', 'label', 'bullet', 'number', 'reversed_number'];
+                                if (previewKeys.includes(k)) {
+                                    card.querySelector('.form-card-title span').textContent = e.target.value || `Item #${i + 1}`;
+                                }
+                            });
+                        }
 
-            renameSection(oldName, newName) {
-                if (!newName || newName.trim() === '' || oldName === newName) return;
-                const sections = this.data.cv.sections;
-                if (sections[newName]) {
-                    showToast('Section name already exists!', 'error');
-                    this.renderActiveSection();
-                    return;
-                }
-
-                // Preserve section keys order on rename
-                const newSections = {};
-                Object.keys(sections).forEach(k => {
-                    if (k === oldName) {
-                        newSections[newName] = sections[oldName];
-                    } else {
-                        newSections[k] = sections[k];
-                    }
-                });
-                this.data.cv.sections = newSections;
-
-                this.activeSection = newName;
-                this.updateEditor();
-                this.render();
-                renderPdf();
-            },
-
-            deleteSection(sectionName) {
-                if (confirm(`Are you sure you want to delete the entire "${sectionName}" section?`)) {
-                    delete this.data.cv.sections[sectionName];
-                    this.activeSection = 'basic_info';
-                    this.updateEditor();
-                    this.render();
-                    renderPdf();
-                    showToast(`Deleted section "${sectionName}"`, 'success');
-                }
-            },
-
-            toggleVisibility(secName) {
-                const isVisible = !hiddenSections.includes(secName);
-                toggleSectionVisibility(secName, !isVisible);
-            },
-
-            moveSectionUp(secName) {
-                const sections = this.data.cv.sections;
-                if (!sections) return;
-                const keys = Object.keys(sections);
-                const index = keys.indexOf(secName);
-                if (index <= 0) return; // Can't move up further
-
-                // Swap in the keys array
-                const temp = keys[index];
-                keys[index] = keys[index - 1];
-                keys[index - 1] = temp;
-
-                // Rebuild sections object
-                const newSections = {};
-                keys.forEach(k => {
-                    newSections[k] = sections[k];
-                });
-                this.data.cv.sections = newSections;
-
-                this.updateEditor();
-                this.render();
-                renderPdf();
-            },
-
-            moveSectionDown(secName) {
-                const sections = this.data.cv.sections;
-                if (!sections) return;
-                const keys = Object.keys(sections);
-                const index = keys.indexOf(secName);
-                if (index < 0 || index >= keys.length - 1) return; // Can't move down further
-
-                // Swap in the keys array
-                const temp = keys[index];
-                keys[index] = keys[index + 1];
-                keys[index + 1] = temp;
-
-                // Rebuild sections object
-                const newSections = {};
-                keys.forEach(k => {
-                    newSections[k] = sections[k];
-                });
-                this.data.cv.sections = newSections;
-
-                this.updateEditor();
-                this.render();
-                renderPdf();
-            },
-
-            addItemToSection(sectionName) {
-                const sections = this.data.cv.sections;
-                const items = sections[sectionName];
-
-                let newItem = '';
-                const lowercaseSecName = sectionName.toLowerCase();
-                let matched = false;
-
-                for (const [key, schema] of Object.entries(this.schemas)) {
-                    if (lowercaseSecName.includes(key.replace(/_/g, '')) || key.replace(/_/g, '').includes(lowercaseSecName)) {
-                        newItem = JSON.parse(JSON.stringify(schema));
-                        matched = true;
-                        break;
-                    }
-                }
-
-                if (!matched && items.length > 0) {
-                    const prototype = items[0];
-                    if (typeof prototype === 'string') {
-                        newItem = '';
-                    } else {
-                        newItem = {};
-                        Object.keys(prototype).forEach(k => {
-                            newItem[k] = Array.isArray(prototype[k]) ? [] : '';
-                        });
-                    }
-                } else if (!matched) {
-                    newItem = JSON.parse(JSON.stringify(this.schemas.experience));
-                }
-
-                items.push(newItem);
-                this.expandedItems[`${sectionName}_${items.length - 1}`] = true;
-                this.updateEditor();
-                this.renderActiveSection();
-            },
-
-            deleteItemFromSection(sectionName, idx) {
-                const items = this.data.cv.sections[sectionName];
-                items.splice(idx, 1);
-                this.updateEditor();
-                this.renderActiveSection();
-            },
-
-            addListSubitem(sectionName, idx, key) {
-                const items = this.data.cv.sections[sectionName];
-                if (!items[idx][key]) items[idx][key] = [];
-                items[idx][key].push('');
-                this.updateEditor();
-                this.renderActiveSection();
-            },
-
-            deleteListSubitem(sectionName, idx, key, subidx) {
-                const items = this.data.cv.sections[sectionName];
-                items[idx][key].splice(subidx, 1);
-                this.updateEditor();
-                this.renderActiveSection();
-            },
-
-            addNewSectionPrompt() {
-                const name = prompt("Enter a name for the new CV section:");
-                if (!name || name.trim() === '') return;
-                const sections = this.data.cv.sections;
-                if (sections[name]) {
-                    showToast('Section name already exists!', 'error');
-                    return;
-                }
-
-                const type = prompt("Choose entry type:\n1. Experience/Education/Project (Standard Card)\n2. Simple text points list\n3. Skill label-value list\n\nEnter 1, 2, or 3 (default 1):", "1");
-
-                let initialItem;
-                if (type === "2") {
-                    initialItem = ["Sample bullet point"];
-                } else if (type === "3") {
-                    initialItem = [{ label: "Programming", details: "Python, C++, Java" }];
-                } else {
-                    initialItem = [{
-                        institution: "My Organization",
-                        area: "Domain",
-                        degree: "Title / Role",
-                        location: "City, Country",
-                        start_date: "2024-01",
-                        end_date: "present",
-                        highlights: ["Key accomplishment or point"]
-                    }];
-                }
-
-                sections[name] = initialItem;
-                this.activeSection = name;
-                this.updateEditor();
-                this.render();
-                showToast(`Created new section "${name}"`, 'success');
-            },
-
-            escapeHtml(text) {
-                if (!text) return '';
-                return text
-                    .toString()
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;")
-                    .replace(/"/g, "&quot;")
-                    .replace(/'/g, "&#039;");
-            }
-        };
-
-        // Initialize Lucide icons
-        lucide.createIcons();
-
-        // Toast Helper
-        function showToast(message, type = 'info') {
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-
-            let iconName = 'info';
-            if (type === 'success') iconName = 'check-circle';
-            if (type === 'error') iconName = 'alert-triangle';
-
-            toast.innerHTML = `
-                <i data-lucide="${iconName}"></i>
-                <span>${message}</span>
-                <i data-lucide="x" class="toast-close"></i>
-            `;
-
-            toastContainer.appendChild(toast);
-            lucide.createIcons({ attrs: { class: 'lucide' }, nameAttr: 'data-lucide', node: toast });
-
-            toast.querySelector('.toast-close').addEventListener('click', () => {
-                toast.remove();
-            });
-
-            setTimeout(() => {
-                toast.style.animation = 'none'; // reset transition to fade out smoothly
-                toast.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateY(-20px)';
-                setTimeout(() => toast.remove(), 500);
-            }, 4000);
-        }
-
-        // Status Management
-        function setStatus(state, text) {
-            statusDot.className = 'status-dot';
-            statusDot.classList.add(state);
-            statusText.textContent = text;
-        }
-
-        // Toggle Console
-        function toggleConsole(forceState = null) {
-            isConsoleExpanded = forceState !== null ? forceState : !isConsoleExpanded;
-            if (isConsoleExpanded) {
-                consolePanel.classList.add('expanded');
-                consoleChevron.style.transform = 'rotate(180deg)';
-            } else {
-                consolePanel.classList.remove('expanded');
-                consoleChevron.style.transform = 'rotate(0deg)';
-            }
-        }
-
-        consoleHeader.addEventListener('click', () => toggleConsole());
-
-        // Toggle sections visibility dropdown
-        btnSections.addEventListener('click', (e) => {
-            e.stopPropagation();
-            sectionsDropdown.classList.toggle('visible');
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!sectionsDropdown.contains(e.target) && e.target !== btnSections) {
-                sectionsDropdown.classList.remove('visible');
-            }
-        });
-
-        // Configure and Load Monaco Editor
-        setStatus('ready', 'Loading editor components...');
-        require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs' }});
-        require(['vs/editor/editor.main'], function() {
-            window.editor = monaco.editor.create(document.getElementById('editor-container'), {
-                value: '',
-                language: 'yaml',
-                theme: 'vs-dark',
-                automaticLayout: true,
-                tabSize: 2,
-                insertSpaces: true,
-                fontSize: 14,
-                fontFamily: 'JetBrains Mono, Menlo, Monaco, Courier New, monospace',
-                minimap: { enabled: false },
-                lineNumbers: 'on',
-                roundedSelection: false,
-                scrollBeyondLastLine: false,
-                readOnly: false,
-                padding: { top: 12, bottom: 12 }
-            });
-
-            monaco.editor.defineTheme('custom-dark', {
-                base: 'vs-dark',
-                inherit: true,
-                rules: [],
-                colors: {
-                    'editor.background': '#12141c',
-                }
-            });
-            monaco.editor.setTheme('custom-dark');
-
-            // Keyboard shortcut for Render (Cmd/Ctrl + Enter)
-            window.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, function() {
-                renderPdf();
-            });
-
-            // Automatically save YAML edits to localStorage
-            window.editor.onDidChangeModelContent(() => {
-                const yamlVal = window.editor.getValue();
-                localStorage.setItem('rendercv_yaml', yamlVal);
-            });
-
-            setStatus('ready', 'Editor ready');
-
-            // Initialize cvForm
-            cvForm.init();
-
-            // Check for saved state in localStorage
-            const savedYaml = localStorage.getItem('rendercv_yaml');
-            const savedTheme = localStorage.getItem('rendercv_theme');
-            const savedHidden = localStorage.getItem('rendercv_hidden_sections');
-
-            if (savedHidden) {
-                try {
-                    hiddenSections = JSON.parse(savedHidden);
-                } catch (e) {
-                    console.error("Error parsing saved hidden sections", e);
-                }
-            }
-
-            loadTemplates(savedYaml, savedTheme);
-        });
-
-        // Fetch Themes
-        async function loadTemplates(savedYaml = null, savedTheme = null) {
-            try {
-                const res = await fetch('/api/templates');
-                const templates = await res.json();
-
-                themeSelector.innerHTML = '<option value="" disabled selected>Load example theme...</option>';
-                templates.forEach(t => {
-                    const option = document.createElement('option');
-                    option.value = t;
-                    option.textContent = t.charAt(0).toUpperCase() + t.slice(1);
-                    themeSelector.appendChild(option);
-                });
-
-                themeSelector.disabled = false;
-                btnRender.disabled = false;
-
-                // If a saved YAML exists, restore it; otherwise load 'classic' by default
-                if (savedYaml) {
-                    window.editor.setValue(savedYaml);
-                    if (cvForm.activeTab === 'form') {
-                        cvForm.loadFromEditor();
-                    }
-                    if (savedTheme && templates.includes(savedTheme)) {
-                        themeSelector.value = savedTheme;
-                    }
-                    setStatus('ready', 'Restored unsaved draft');
-                    showToast('Restored your previous edits', 'info');
-                    renderPdf(); // Initial render of restored content
-                } else {
-                    if (templates.includes('classic')) {
-                        themeSelector.value = 'classic';
-                        localStorage.setItem('rendercv_theme', 'classic');
-                        loadThemeTemplate('classic');
-                    }
-                }
-            } catch (err) {
-                console.error(err);
-                showToast('Failed to load templates from server', 'error');
-                setStatus('error', 'API Connection Error');
-            }
-        }
-
-        // Fetch example YAML for a theme
-        async function loadThemeTemplate(themeName) {
-            setStatus('compiling', `Loading ${themeName} example...`);
-            try {
-                const res = await fetch(`/api/templates/${themeName}`);
-                const data = await res.json();
-                if (window.editor) {
-                    // Reset hidden sections on theme template load
-                    hiddenSections = [];
-                    localStorage.removeItem('rendercv_hidden_sections');
-
-                    window.editor.setValue(data.yaml);
-                    if (cvForm.activeTab === 'form') {
-                        cvForm.loadFromEditor();
-                    }
-                    // setting the value will auto-save to localStorage via onDidChangeModelContent
-                    localStorage.setItem('rendercv_theme', themeName);
-
-                    showToast(`Loaded "${themeName}" theme template`, 'info');
-                    setStatus('ready', 'Ready');
-
-                    // Render automatically when a theme is loaded
-                    renderPdf();
-                }
-            } catch (err) {
-                console.error(err);
-                showToast('Failed to retrieve template contents', 'error');
-                setStatus('error', 'Template load failed');
-            }
-        }
-
-        themeSelector.addEventListener('change', async (e) => {
-            const theme = e.target.value;
-            const yamlContent = window.editor ? window.editor.getValue() : '';
-
-            if (yamlContent.trim()) {
-                setStatus('compiling', `Switching style to ${theme}...`);
-                try {
-                    const res = await fetch('/api/switch_theme', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ yaml: yamlContent, theme: theme })
+                        cardBody.appendChild(formGroup);
                     });
-
-                    if (res.ok) {
-                        const data = await res.json();
-                        // Reset hidden sections on style switch
-                        hiddenSections = [];
-                        localStorage.removeItem('rendercv_hidden_sections');
-
-                        window.editor.setValue(data.yaml);
-                        if (cvForm.activeTab === 'form') {
-                            cvForm.loadFromEditor();
-                        }
-                        localStorage.setItem('rendercv_theme', theme);
-                        showToast(`Switched style to "${theme}" while preserving your resume data!`, 'success');
-                        setStatus('ready', 'Ready');
-                        renderPdf();
-                        return;
-                    } else {
-                        const err = await res.json();
-                        showToast(err.detail || 'Could not migrate CV data. Please fix YAML syntax errors first.', 'error');
-                        // Restore dropdown selection to previous saved theme
-                        themeSelector.value = localStorage.getItem('rendercv_theme') || 'classic';
-                        setStatus('ready', 'Ready');
-                        return;
-                    }
-                } catch (err) {
-                    console.error(err);
-                    showToast('Network error while switching styles', 'error');
-                    themeSelector.value = localStorage.getItem('rendercv_theme') || 'classic';
-                    setStatus('ready', 'Ready');
-                    return;
                 }
-            }
 
-            // Fallback if editor is empty: load clean default template
-            localStorage.setItem('rendercv_theme', theme);
-            loadThemeTemplate(theme);
-        });
-
-        // Sections UI Management
-        function updateSectionsUI(serverSections) {
-            allSections = serverSections;
-            // Clean up hiddenSections to only keep sections that actually exist in the current YAML
-            hiddenSections = hiddenSections.filter(s => allSections.includes(s));
-
-            if (allSections.length === 0) {
-                sectionsCheckboxList.innerHTML = '<div style="color: var(--text-muted); font-size: 0.8rem; padding: 0.5rem 0; text-align: center;">No sections found</div>';
-                btnSections.disabled = true;
-                return;
-            }
-
-            btnSections.disabled = false;
-            sectionsCheckboxList.innerHTML = '';
-
-            allSections.forEach(section => {
-                const isChecked = !hiddenSections.includes(section);
-                const item = document.createElement('div');
-                item.className = 'checkbox-item';
-                item.addEventListener('click', (e) => {
-                    e.stopPropagation(); // prevent closing dropdown
-                    const checkbox = item.querySelector('input');
-                    checkbox.checked = !checkbox.checked;
-                    toggleSectionVisibility(section, checkbox.checked);
-                });
-
-                item.innerHTML = `
-                    <input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleSectionVisibility('${section}', this.checked)">
-                    <span style="flex: 1;">${escapeHtml(section)}</span>
-                `;
-                sectionsCheckboxList.appendChild(item);
+                itemsContainer.appendChild(card);
             });
-        }
+        },
 
-        function toggleSectionVisibility(section, isVisible) {
-            if (isVisible) {
-                hiddenSections = hiddenSections.filter(s => s !== section);
-            } else {
-                if (!hiddenSections.includes(section)) {
-                    hiddenSections.push(section);
-                }
-            }
-            localStorage.setItem('rendercv_hidden_sections', JSON.stringify(hiddenSections));
-            renderPdf();
-            if (cvForm && typeof cvForm.renderSidebar === 'function') {
-                cvForm.renderSidebar();
-            }
-        }
+        toggleItemExpand(key) {
+            this.expandedItems[key] = this.expandedItems[key] === false;
+            this.renderActiveSection();
+        },
 
-        // Core Render PDF Function
-        async function renderPdf() {
-            if (!window.editor) return;
-
-            const yamlContent = window.editor.getValue();
-            if (!yamlContent.trim()) {
-                showToast('Editor is empty!', 'error');
+        renameSection(oldName, newName) {
+            if (!newName || newName.trim() === '' || oldName === newName) return;
+            const sections = this.data.cv.sections;
+            if (sections[newName]) {
+                showToast('Section name already exists!', 'error');
+                this.renderActiveSection();
                 return;
             }
 
-            // UI feedback
-            setStatus('compiling', 'Compiling PDF...');
-            loadingOverlay.classList.add('visible');
-            btnRender.disabled = true;
-
-            // Clear prior errors
-            clearErrors();
-
-            const startTime = performance.now();
-            try {
-                const res = await fetch('/api/render', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        yaml: yamlContent,
-                        hide_sections: hiddenSections
-                    })
-                });
-
-                const endTime = performance.now();
-                const duration = Math.round(endTime - startTime);
-
-                if (res.ok) {
-                    // Update sections checklist from Response Headers
-                    const sectionsHeader = res.headers.get('X-RenderCV-Sections');
-                    if (sectionsHeader) {
-                        try {
-                            const serverSections = JSON.parse(decodeURIComponent(sectionsHeader));
-                            updateSectionsUI(serverSections);
-                        } catch (e) {
-                            console.error("Error parsing sections header", e);
-                        }
-                    }
-
-                    // Load PDF as blob
-                    const blob = await res.blob();
-                    currentPdfBlob = blob;
-
-                    const blobUrl = URL.createObjectURL(blob);
-
-                    // Display PDF
-                    previewPlaceholder.style.display = 'none';
-                    previewIframe.src = blobUrl;
-                    previewIframe.style.display = 'block';
-
-                    btnDownload.disabled = false;
-                    setStatus('ready', `Rendered in ${duration}ms`);
-                    showToast('PDF compiled successfully!', 'success');
+            // Preserve section keys order on rename
+            const newSections = {};
+            Object.keys(sections).forEach(k => {
+                if (k === oldName) {
+                    newSections[newName] = sections[oldName];
                 } else {
-                    const errData = await res.json();
-                    handleRenderingErrors(errData);
+                    newSections[k] = sections[k];
                 }
-            } catch (err) {
-                console.error(err);
-                setStatus('error', 'Compilation failed');
-                showToast('Network error during rendering', 'error');
-            } finally {
-                loadingOverlay.classList.remove('visible');
-                btnRender.disabled = false;
+            });
+            this.data.cv.sections = newSections;
+
+            this.activeSection = newName;
+            this.updateEditor();
+            this.render();
+            // renderPdf();
+        },
+
+        deleteSection(sectionName) {
+            if (confirm(`Are you sure you want to delete the entire "${sectionName}" section?`)) {
+                delete this.data.cv.sections[sectionName];
+                this.activeSection = 'basic_info';
+                this.updateEditor();
+                this.render();
+                // renderPdf();
+                showToast(`Deleted section "${sectionName}"`, 'success');
             }
-        }
+        },
 
-        btnRender.addEventListener('click', renderPdf);
+        toggleVisibility(secName) {
+            const isVisible = !hiddenSections.includes(secName);
+            toggleSectionVisibility(secName, !isVisible);
+        },
 
-        // Error Handling & Integration with Monaco
-        function handleRenderingErrors(err) {
-            setStatus('error', 'Compilation Error');
-            toggleConsole(true); // Open log panel
+        moveSectionUp(secName) {
+            const sections = this.data.cv.sections;
+            if (!sections) return;
+            const keys = Object.keys(sections);
+            const index = keys.indexOf(secName);
+            if (index <= 0) return; // Can't move up further
 
-            let html = '';
+            // Swap in the keys array
+            const temp = keys[index];
+            keys[index] = keys[index - 1];
+            keys[index - 1] = temp;
 
-            if (err.type === 'validation_error' && err.errors && err.errors.length > 0) {
-                consoleTitle.classList.add('has-error');
-                errorCountBadge.textContent = err.errors.length;
-                errorCountBadge.style.display = 'inline-block';
+            // Rebuild sections object
+            const newSections = {};
+            keys.forEach(k => {
+                newSections[k] = sections[k];
+            });
+            this.data.cv.sections = newSections;
 
-                err.errors.forEach(e => {
-                    const lineLoc = e.line ? `Line ${e.line}, Col ${e.col}` : 'Global';
-                    const lineBadge = e.line ? `<span class="error-line-badge" onclick="event.stopPropagation(); goToLine(${e.line}, ${e.col})">Line ${e.line}</span>` : '';
+            this.updateEditor();
+            this.render();
+            renderPdf();
+        },
 
-                    html += `
-                        <div class="error-item" onclick="goToLine(${e.line || 1}, ${e.col || 1})">
-                            <div class="error-meta">
-                                ${lineBadge}
-                                <span>${e.schema_location ? e.schema_location.join(' → ') : 'validation'}</span>
-                            </div>
-                            <div style="font-weight: 500;">${escapeHtml(e.message)}</div>
-                        </div>
-                    `;
-                });
+        moveSectionDown(secName) {
+            const sections = this.data.cv.sections;
+            if (!sections) return;
+            const keys = Object.keys(sections);
+            const index = keys.indexOf(secName);
+            if (index < 0 || index >= keys.length - 1) return; // Can't move down further
 
-                showToast(`Validation failed with ${err.errors.length} error(s)`, 'error');
+            // Swap in the keys array
+            const temp = keys[index];
+            keys[index] = keys[index + 1];
+            keys[index + 1] = temp;
+
+            // Rebuild sections object
+            const newSections = {};
+            keys.forEach(k => {
+                newSections[k] = sections[k];
+            });
+            this.data.cv.sections = newSections;
+
+            this.updateEditor();
+            this.render();
+            renderPdf();
+        },
+
+        addItemToSection(sectionName) {
+            const sections = this.data.cv.sections;
+            const items = sections[sectionName];
+
+            let newItem = '';
+            const lowercaseSecName = sectionName.toLowerCase();
+            let matched = false;
+
+            for (const [key, schema] of Object.entries(this.schemas)) {
+                if (lowercaseSecName.includes(key.replace(/_/g, '')) || key.replace(/_/g, '').includes(lowercaseSecName)) {
+                    newItem = JSON.parse(JSON.stringify(schema));
+                    matched = true;
+                    break;
+                }
+            }
+
+            if (!matched && items.length > 0) {
+                const prototype = items[0];
+                if (typeof prototype === 'string') {
+                    newItem = '';
+                } else {
+                    newItem = {};
+                    Object.keys(prototype).forEach(k => {
+                        newItem[k] = Array.isArray(prototype[k]) ? [] : '';
+                    });
+                }
+            } else if (!matched) {
+                newItem = JSON.parse(JSON.stringify(this.schemas.experience));
+            }
+
+            items.push(newItem);
+            this.expandedItems[`${sectionName}_${items.length - 1}`] = true;
+            this.updateEditor();
+            this.renderActiveSection();
+        },
+
+        deleteItemFromSection(sectionName, idx) {
+            const items = this.data.cv.sections[sectionName];
+            items.splice(idx, 1);
+            this.updateEditor();
+            this.renderActiveSection();
+        },
+
+        addListSubitem(sectionName, idx, key) {
+            const items = this.data.cv.sections[sectionName];
+            if (!items[idx][key]) items[idx][key] = [];
+            items[idx][key].push('');
+            this.updateEditor();
+            this.renderActiveSection();
+        },
+
+        deleteListSubitem(sectionName, idx, key, subidx) {
+            const items = this.data.cv.sections[sectionName];
+            items[idx][key].splice(subidx, 1);
+            this.updateEditor();
+            this.renderActiveSection();
+        },
+
+        addNewSectionPrompt() {
+            const name = prompt("Enter a name for the new CV section:");
+            if (!name || name.trim() === '') return;
+            const sections = this.data.cv.sections;
+            if (sections[name]) {
+                showToast('Section name already exists!', 'error');
+                return;
+            }
+
+            const type = prompt("Choose entry type:\n1. Experience/Education/Project (Standard Card)\n2. Simple text points list\n3. Skill label-value list\n\nEnter 1, 2, or 3 (default 1):", "1");
+
+            let initialItem;
+            if (type === "2") {
+                initialItem = ["Sample bullet point"];
+            } else if (type === "3") {
+                initialItem = [{label: "Programming", details: "Python, C++, Java"}];
             } else {
-                consoleTitle.classList.add('has-error');
-                errorCountBadge.style.display = 'none';
-
-                const errorDetail = err.detail || 'An unknown compilation error occurred';
-
-                html = `
-                    <div class="error-item" style="cursor: default;">
-                        <div class="error-meta">
-                            <span class="error-line-badge">System Error</span>
-                        </div>
-                        <div style="font-weight: 500; white-space: pre-wrap;">${escapeHtml(errorDetail)}</div>
-                    </div>
-                `;
-
-                if (err.traceback) {
-                    html += `
-                        <div style="margin-top: 1rem; color: var(--text-muted); font-size: 0.75rem;">
-                            <strong>Traceback:</strong>
-                            <pre style="overflow-x: auto; margin-top: 0.5rem; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 4px;">${escapeHtml(err.traceback)}</pre>
-                        </div>
-                    `;
-                }
-
-                showToast('RenderCV compilation failed', 'error');
+                initialItem = [{
+                    institution: "My Organization",
+                    area: "Domain",
+                    degree: "Title / Role",
+                    location: "City, Country",
+                    start_date: "2024-01",
+                    end_date: "present",
+                    highlights: ["Key accomplishment or point"]
+                }];
             }
 
-            consoleContent.innerHTML = html;
-        }
+            sections[name] = initialItem;
+            this.activeSection = name;
+            this.updateEditor();
+            this.render();
+            showToast(`Created new section "${name}"`, 'success');
+        },
 
-        function clearErrors() {
-            consoleTitle.classList.remove('has-error');
-            errorCountBadge.style.display = 'none';
-            consoleContent.innerHTML = '<div class="no-errors">No active validation issues</div>';
-        }
-
-        function goToLine(line, col = 1) {
-            if (!window.editor) return;
-            window.editor.focus();
-            window.editor.setPosition({ lineNumber: line, column: col });
-            window.editor.revealLineInCenter(line);
-        }
-
-        function escapeHtml(text) {
+        escapeHtml(text) {
             if (!text) return '';
             return text
                 .toString()
@@ -2206,23 +1910,919 @@
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#039;");
         }
+    };
 
-        // Download Action
-        btnDownload.addEventListener('click', () => {
-            if (!currentPdfBlob) return;
+    // Initialize Lucide icons
+    lucide.createIcons();
 
-            const theme = themeSelector.value || 'cv';
+    // Toast Helper
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
 
-            const url = URL.createObjectURL(currentPdfBlob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `RenderCV_Resume_${theme}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showToast('PDF downloaded successfully!', 'success');
+        let iconName = 'info';
+        if (type === 'success') iconName = 'check-circle';
+        if (type === 'error') iconName = 'alert-triangle';
+
+        toast.innerHTML = `
+                <i data-lucide="${iconName}"></i>
+                <span>${message}</span>
+                <i data-lucide="x" class="toast-close"></i>
+            `;
+
+        toastContainer.appendChild(toast);
+        lucide.createIcons({attrs: {class: 'lucide'}, nameAttr: 'data-lucide', node: toast});
+
+        toast.querySelector('.toast-close').addEventListener('click', () => {
+            toast.remove();
         });
-    </script>
+
+        setTimeout(() => {
+            toast.style.animation = 'none'; // reset transition to fade out smoothly
+            toast.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-20px)';
+            setTimeout(() => toast.remove(), 500);
+        }, 4000);
+    }
+
+    // Status Management
+    function setStatus(state, text) {
+        statusDot.className = 'status-dot';
+        statusDot.classList.add(state);
+        statusText.textContent = text;
+    }
+
+    // Toggle Console
+    function toggleConsole(forceState = null) {
+        isConsoleExpanded = forceState !== null ? forceState : !isConsoleExpanded;
+        if (isConsoleExpanded) {
+            consolePanel.classList.add('expanded');
+            consoleChevron.style.transform = 'rotate(180deg)';
+        } else {
+            consolePanel.classList.remove('expanded');
+            consoleChevron.style.transform = 'rotate(0deg)';
+        }
+    }
+
+    consoleHeader.addEventListener('click', () => toggleConsole());
+
+    // Toggle sections visibility dropdown
+    btnSections.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sectionsDropdown.classList.toggle('visible');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!sectionsDropdown.contains(e.target) && e.target !== btnSections) {
+            sectionsDropdown.classList.remove('visible');
+        }
+    });
+
+    // Configure and Load Monaco Editor
+    setStatus('ready', 'Loading editor components...');
+    require.config({paths: {'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.39.0/min/vs'}});
+    require(['vs/editor/editor.main'], function () {
+        window.editor = monaco.editor.create(document.getElementById('editor-container'), {
+            value: '',
+            language: 'yaml',
+            theme: 'vs-dark',
+            automaticLayout: true,
+            tabSize: 2,
+            insertSpaces: true,
+            fontSize: 14,
+            fontFamily: 'JetBrains Mono, Menlo, Monaco, Courier New, monospace',
+            minimap: {enabled: false},
+            lineNumbers: 'on',
+            roundedSelection: false,
+            scrollBeyondLastLine: false,
+            readOnly: false,
+            padding: {top: 12, bottom: 12}
+        });
+
+        monaco.editor.defineTheme('custom-dark', {
+            base: 'vs-dark',
+            inherit: true,
+            rules: [],
+            colors: {
+                'editor.background': '#12141c',
+            }
+        });
+        monaco.editor.setTheme('custom-dark');
+
+        // Keyboard shortcut for Render (Cmd/Ctrl + Enter)
+        window.editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, function () {
+            renderPdf();
+        });
+
+        // Automatically save YAML edits to localStorage
+        window.editor.onDidChangeModelContent(() => {
+            const yamlVal = window.editor.getValue();
+            localStorage.setItem('rendercv_yaml', yamlVal);
+        });
+
+        setStatus('ready', 'Editor ready');
+
+        // Initialize cvForm
+        cvForm.init();
+
+        // Check for saved state in localStorage
+        const savedYaml = localStorage.getItem('rendercv_yaml');
+        const savedTheme = localStorage.getItem('rendercv_theme');
+        const savedHidden = localStorage.getItem('rendercv_hidden_sections');
+
+        if (savedHidden) {
+            try {
+                hiddenSections = JSON.parse(savedHidden);
+            } catch (e) {
+                console.error("Error parsing saved hidden sections", e);
+            }
+        }
+
+        // Check for offline allowed permission
+        const isAllowed = localStorage.getItem('rendercv_offline_allowed');
+        if (isAllowed === 'true') {
+            initWorker();
+        } else if (isAllowed === 'false') {
+            showOfflineDisabledMessage();
+        } else {
+            showPermissionModal();
+        }
+    });
+
+    // Permission Modal Management
+    function showPermissionModal() {
+        const modal = document.getElementById('permission-modal');
+        modal.classList.add('visible');
+
+        const btnAllow = document.getElementById('btn-allow-offline');
+        const btnDecline = document.getElementById('btn-decline-offline');
+        const rememberCheckbox = document.getElementById('remember-permission');
+
+        btnAllow.onclick = function () {
+            modal.classList.remove('visible');
+            if (rememberCheckbox.checked) {
+                localStorage.setItem('rendercv_offline_allowed', 'true');
+            }
+            initWorker();
+        };
+
+        btnDecline.onclick = function () {
+            modal.classList.remove('visible');
+            if (rememberCheckbox.checked) {
+                localStorage.setItem('rendercv_offline_allowed', 'false');
+            }
+            showOfflineDisabledMessage();
+        };
+    }
+
+    function showOfflineDisabledMessage() {
+        setStatus('error', 'Offline compiler permission denied');
+        btnRender.disabled = true;
+        showToast('Offline compiler disabled. Reload page and grant permission to activate.', 'warning');
+    }
+
+    // Fetch Helper with Progress Tracking
+    async function fetchWithProgress(url, onProgress, responseType = 'arraybuffer') {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch ${url}: ${response.statusText}`);
+        }
+        const contentLength = response.headers.get('content-length');
+        if (!contentLength) {
+            if (responseType === 'text') return response.text();
+            return response.arrayBuffer();
+        }
+
+        const total = parseInt(contentLength, 10);
+        let loaded = 0;
+
+        const reader = response.body.getReader();
+        const chunks = [];
+
+        while (true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+            chunks.push(value);
+            loaded += value.length;
+            if (onProgress) {
+                onProgress(Math.round((loaded / total) * 100));
+            }
+        }
+
+        const allChunks = new Uint8Array(loaded);
+        let position = 0;
+        for (const chunk of chunks) {
+            allChunks.set(chunk, position);
+            position += chunk.length;
+        }
+
+        if (responseType === 'text') {
+            return new TextDecoder("utf-8").decode(allChunks);
+        }
+        return allChunks.buffer;
+    }
+
+    // Worker & RPC state
+    let worker = null;
+    let pendingRequests = {};
+    let requestIdCounter = 0;
+
+    function sendWorkerMessage(type, payload) {
+        return new Promise((resolve, reject) => {
+            if (!worker) {
+                reject(new Error("Worker not initialized"));
+                return;
+            }
+            const id = requestIdCounter++;
+            pendingRequests[id] = {resolve, reject};
+            worker.postMessage({id, type, ...payload});
+        });
+    }
+
+    async function initWorker() {
+        setStatus('compiling', 'Downloading RenderCV wheel package...');
+        loadingOverlay.classList.add('visible');
+
+        const progressContainer = document.getElementById('loading-progress-container');
+        const progressFill = document.getElementById('loading-progress-fill');
+        const loadingStatus = document.getElementById('loading-status');
+        const loadingSubstatus = document.getElementById('loading-substatus');
+
+        progressContainer.style.display = 'block';
+        loadingStatus.textContent = 'Загрузка RenderCV...';
+
+        try {
+            const wheelUrl = window.location.origin + "/rendercv-2.8-py3-none-any.whl";
+            const wheelBytes = await fetchWithProgress(wheelUrl, (percent) => {
+                progressFill.style.width = percent + '%';
+                loadingSubstatus.textContent = `Загрузка: ${percent}%`;
+            }, 'arraybuffer');
+
+            loadingStatus.textContent = 'Инициализация Python...';
+            loadingSubstatus.textContent = 'Подготовка окружения Pyodide...';
+            progressContainer.style.display = 'none';
+
+            worker = new Worker('render_worker.js');
+
+            worker.onmessage = function (event) {
+                const data = event.data;
+                if (data.type === "worker_loaded") {
+                    worker.postMessage({type: "init", wheelBuffer: wheelBytes}, [wheelBytes]);
+                } else if (data.type === "status") {
+                    if (data.status === "loading") {
+                        setStatus('compiling', data.message);
+                        loadingStatus.textContent = data.message;
+                        loadingSubstatus.textContent = 'Это может занять некоторое время';
+                    } else if (data.status === "ready") {
+                        setStatus('ready', data.message);
+
+                        // Load package assets, then initialize editor templates
+                        loadLocalPackages().then(() => {
+                            const savedYaml = localStorage.getItem('rendercv_yaml');
+                            const savedTheme = localStorage.getItem('rendercv_theme');
+                            loadTemplates(savedYaml, savedTheme);
+                        }).catch(e => {
+                            console.error("Failed to load local packages", e);
+                            showToast("Failed to load local packages: " + e.message, "error");
+                        });
+                    } else if (data.status === "error") {
+                        setStatus('error', "Initialization Failed: " + data.error);
+                        loadingOverlay.classList.remove('visible');
+                        showToast("Failed to initialize RenderCV: " + data.error, "error");
+                    }
+                } else if (data.type === "render_response") {
+                    const req = pendingRequests[data.id];
+                    if (req) {
+                        delete pendingRequests[data.id];
+                        if (data.error) req.reject(new Error(data.error));
+                        else req.resolve(data.result);
+                    }
+                } else if (data.type === "switch_theme_response") {
+                    const req = pendingRequests[data.id];
+                    if (req) {
+                        delete pendingRequests[data.id];
+                        if (data.error) req.reject(new Error(data.error));
+                        else req.resolve(data.result);
+                    }
+                } else if (data.type === "load_theme_response") {
+                    const req = pendingRequests[data.id];
+                    if (req) {
+                        delete pendingRequests[data.id];
+                        if (data.error) req.reject(new Error(data.error));
+                        else req.resolve(data.result);
+                    }
+                }
+            };
+        } catch (e) {
+            console.error(e);
+            setStatus('error', 'Download Failed');
+            showToast('Failed to download RenderCV wheel: ' + e.message, 'error');
+            loadingOverlay.classList.remove('visible');
+        }
+    }
+
+    // Typst Package Assets
+    let rendercvLibBytes = null;
+    let fontawesomeLibBytes = null;
+    let fontawesomeLibImplBytes = null;
+    let fontawesomeLibGenFuncBytes = null;
+    let fontawesomeLibGenMapBytes = null;
+
+    async function loadLocalPackages() {
+        setStatus('compiling', 'Loading local Typst packages...');
+        const progressContainer = document.getElementById('loading-progress-container');
+        const progressFill = document.getElementById('loading-progress-fill');
+        const loadingStatus = document.getElementById('loading-status');
+        const loadingSubstatus = document.getElementById('loading-substatus');
+
+        loadingOverlay.classList.add('visible');
+        progressContainer.style.display = 'block';
+        loadingStatus.textContent = 'Загрузка Typst пакетов...';
+
+        const updateProgress = (pct) => {
+            progressFill.style.width = pct + '%';
+            loadingSubstatus.textContent = `Загрузка: ${pct}%`;
+        };
+
+        const [rcvLib, faLib, faImpl, faGenFunc, faGenMap] = await Promise.all([
+            fetchWithProgress('/rendercv_typst/lib.typ', (p) => updateProgress(Math.round(p * 0.2)), 'text'),
+            fetchWithProgress('/typst_fontawesome/lib.typ', (p) => updateProgress(Math.round(20 + p * 0.2)), 'arraybuffer'),
+            fetchWithProgress('/typst_fontawesome/lib-impl.typ', (p) => updateProgress(Math.round(40 + p * 0.2)), 'arraybuffer'),
+            fetchWithProgress('/typst_fontawesome/lib-gen-func.typ', (p) => updateProgress(Math.round(60 + p * 0.2)), 'arraybuffer'),
+            fetchWithProgress('/typst_fontawesome/lib-gen-map.typ', (p) => updateProgress(Math.round(80 + p * 0.2)), 'arraybuffer')
+        ]);
+
+        // Rewrite the fontawesome import inside rendercvLib to VFS absolute path
+        const rewrittenRcvLib = rcvLib.replace(
+            '#import "@preview/fontawesome:0.6.0": fa-icon',
+            '#import "/fontawesome/lib.typ": fa-icon'
+        );
+
+        const encoder = new TextEncoder();
+        rendercvLibBytes = encoder.encode(rewrittenRcvLib);
+        fontawesomeLibBytes = new Uint8Array(faLib);
+        fontawesomeLibImplBytes = new Uint8Array(faImpl);
+        fontawesomeLibGenFuncBytes = new Uint8Array(faGenFunc);
+        fontawesomeLibGenMapBytes = new Uint8Array(faGenMap);
+
+        progressContainer.style.display = 'none';
+        loadingOverlay.classList.remove('visible');
+    }
+
+    // Font Resolution & Preloading Map
+    const FONT_MAP = {
+        "Source Sans 3": [
+            "/fonts/Source Sans 3/SourceSans3-Regular.ttf",
+            "/fonts/Source Sans 3/SourceSans3-Bold.ttf",
+            "/fonts/Source Sans 3/SourceSans3-Italic.ttf",
+            "/fonts/Source Sans 3/SourceSans3-BoldItalic.ttf"
+        ],
+        "Fontin": [
+            "/fonts/Fontin/Fontin-Regular.otf",
+            "/fonts/Fontin/Fontin-Bold.otf",
+            "/fonts/Fontin/Fontin-Italic.otf"
+        ],
+        "EB Garamond": [
+            "/fonts/EB Garamond/EBGaramond-Regular.ttf",
+            "/fonts/EB Garamond/EBGaramond-Bold.ttf",
+            "/fonts/EB Garamond/EBGaramond-Italic.ttf",
+            "/fonts/EB Garamond/EBGaramond-BoldItalic.ttf"
+        ],
+        "Lato": [
+            "/fonts/Lato/Lato-Regular.ttf",
+            "/fonts/Lato/Lato-Bold.ttf",
+            "/fonts/Lato/Lato-Italic.ttf",
+            "/fonts/Lato/Lato-BoldItalic.ttf"
+        ],
+        "Mukta": [
+            "/fonts/Mukta/Mukta-Regular.ttf",
+            "/fonts/Mukta/Mukta-Bold.ttf"
+        ],
+        "Noto Sans": [
+            "/fonts/Noto Sans/NotoSans-Regular.ttf",
+            "/fonts/Noto Sans/NotoSans-Bold.ttf",
+            "/fonts/Noto Sans/NotoSans-Italic.ttf",
+            "/fonts/Noto Sans/NotoSans-BoldItalic.ttf"
+        ],
+        "Open Sans": [
+            "/fonts/Open Sans/OpenSans-Regular.ttf",
+            "/fonts/Open Sans/OpenSans-Bold.ttf",
+            "/fonts/Open Sans/OpenSans-Italic.ttf",
+            "/fonts/Open Sans/OpenSans-BoldItalic.ttf"
+        ],
+        "Open Sauce Sans": [
+            "/fonts/Open Sauce Sans/OpenSauceSans-Regular.ttf",
+            "/fonts/Open Sauce Sans/OpenSauceSans-Bold.ttf",
+            "/fonts/Open Sauce Sans/OpenSauceSans-Italic.ttf",
+            "/fonts/Open Sauce Sans/OpenSauceSans-BoldItalic.ttf"
+        ],
+        "Poppins": [
+            "/fonts/Poppins/Poppins-Regular.ttf",
+            "/fonts/Poppins/Poppins-Bold.ttf",
+            "/fonts/Poppins/Poppins-Italic.ttf",
+            "/fonts/Poppins/Poppins-BoldItalic.ttf"
+        ],
+        "Raleway": [
+            "/fonts/Raleway/Raleway-Regular.ttf",
+            "/fonts/Raleway/Raleway-Bold.ttf",
+            "/fonts/Raleway/Raleway-Italic.ttf",
+            "/fonts/Raleway/Raleway-BoldItalic.ttf"
+        ],
+        "Roboto": [
+            "/fonts/Roboto/Roboto-Regular.ttf",
+            "/fonts/Roboto/Roboto-Bold.ttf",
+            "/fonts/Roboto/Roboto-Italic.ttf",
+            "/fonts/Roboto/Roboto-BoldItalic.ttf"
+        ],
+        "Ubuntu": [
+            "/fonts/Ubuntu/Ubuntu-Regular.ttf",
+            "/fonts/Ubuntu/Ubuntu-Bold.ttf",
+            "/fonts/Ubuntu/Ubuntu-Italic.ttf",
+            "/fonts/Ubuntu/Ubuntu-BoldItalic.ttf"
+        ],
+        "XCharter": [
+            "/fonts/XCharter/XCharter-Regular.otf",
+            "/fonts/XCharter/XCharter-Bold.otf",
+            "/fonts/XCharter/XCharter-Italic.otf",
+            "/fonts/XCharter/XCharter-BoldItalic.otf"
+        ],
+        "Gentium Book Plus": [
+            "/fonts/Gentium Book Plus/GentiumBookPlus-Regular.ttf",
+            "/fonts/Gentium Book Plus/GentiumBookPlus-Bold.ttf",
+            "/fonts/Gentium Book Plus/GentiumBookPlus-Italic.ttf",
+            "/fonts/Gentium Book Plus/GentiumBookPlus-BoldItalic.ttf"
+        ]
+    };
+
+    const BASE_FONTS = [
+        "/fonts/Font Awesome 7/Font Awesome 7 Free-Regular-400.otf",
+        "/fonts/Font Awesome 7/Font Awesome 7 Free-Solid-900.otf",
+        "/fonts/Font Awesome 7/Font Awesome 7 Brands-Regular-400.otf"
+    ];
+
+    let currentLoadedFont = null;
+    let typstCompiler = null;
+
+    function getCompilerObj() {
+        const typstObj = window.Typst || window.typst || window.$typst;
+        if (!typstObj) {
+            throw new Error("Библиотека Typst.ts не найдена. Проверьте интернет-соединение.");
+        }
+        return typstObj;
+    }
+
+    async function getCompiler(fontFamily) {
+        if (typstCompiler && currentLoadedFont === fontFamily) {
+            return typstCompiler;
+        }
+
+        setStatus('compiling', `Loading fonts for ${fontFamily}...`);
+
+        const origin = window.location.origin;
+        const urlsToLoad = BASE_FONTS.map(path => origin + path);
+        if (FONT_MAP[fontFamily]) {
+            urlsToLoad.push(...FONT_MAP[fontFamily].map(path => origin + path));
+        }
+
+        const typstObj = getCompilerObj();
+        const compiler = typstObj.createTypstCompiler();
+        await compiler.init({
+            getModule: () => "https://cdn.jsdelivr.net/npm/@myriaddreamin/typst-ts-web-compiler@latest/pkg/typst_ts_web_compiler_bg.wasm",
+            beforeBuild: [
+                typstObj.preloadRemoteFonts(urlsToLoad)
+            ]
+        });
+
+        typstCompiler = compiler;
+        currentLoadedFont = fontFamily;
+        return compiler;
+    }
+
+    async function prepareCompiler(fontFamily) {
+        const comp = await getCompiler(fontFamily);
+        comp.mapShadow('/rendercv/lib.typ', rendercvLibBytes);
+        comp.mapShadow('/fontawesome/lib.typ', fontawesomeLibBytes);
+        comp.mapShadow('/fontawesome/lib-impl.typ', fontawesomeLibImplBytes);
+        comp.mapShadow('/fontawesome/lib-gen-func.typ', fontawesomeLibGenFuncBytes);
+        comp.mapShadow('/fontawesome/lib-gen-map.typ', fontawesomeLibGenMapBytes);
+        return comp;
+    }
+
+    function getActiveFontFamily(yamlString) {
+        try {
+            const doc = jsyaml.load(yamlString);
+            let theme = "classic";
+            if (doc && doc.design && doc.design.theme) {
+                theme = doc.design.theme;
+            }
+
+            let font = null;
+            if (doc && doc.design && doc.design.typography && doc.design.typography.font_family) {
+                const ff = doc.design.typography.font_family;
+                if (typeof ff === 'string') {
+                    font = ff;
+                } else if (typeof ff === 'object') {
+                    font = ff.body || ff.name || ff.headline || ff.section_titles;
+                }
+            }
+
+            if (font) return font;
+
+            if (theme === 'moderncv') return 'Fontin';
+            if (theme === 'sb2nov' || theme === 'academic' || theme === 'engineeringclassic') return 'New Computer Modern';
+            return 'Source Sans 3';
+        } catch (e) {
+            console.error("Error parsing font family from YAML", e);
+            return 'Source Sans 3';
+        }
+    }
+
+    // Fetch Themes (Local WASM)
+    async function loadTemplates(savedYaml = null, savedTheme = null) {
+        try {
+            const templates = ["academic", "classic", "coldcv", "ember", "engineeringclassic", "engineeringresumes", "harvard", "ink", "moderncv", "opal", "sb2nov"];
+
+            themeSelector.innerHTML = '<option value="" disabled selected>Load example theme...</option>';
+            templates.forEach(t => {
+                const option = document.createElement('option');
+                option.value = t;
+                option.textContent = t.charAt(0).toUpperCase() + t.slice(1);
+                themeSelector.appendChild(option);
+            });
+
+            themeSelector.disabled = false;
+            btnRender.disabled = false;
+
+            // If a saved YAML exists, restore it; otherwise load 'classic' by default
+            if (savedYaml) {
+                window.editor.setValue(savedYaml);
+                if (cvForm.activeTab === 'form') {
+                    cvForm.loadFromEditor();
+                }
+                if (savedTheme && templates.includes(savedTheme)) {
+                    themeSelector.value = savedTheme;
+                }
+                setStatus('ready', 'Restored unsaved draft');
+                showToast('Restored your previous edits', 'info');
+                renderPdf(); // Initial render of restored content
+            } else {
+                if (templates.includes('classic')) {
+                    themeSelector.value = 'classic';
+                    localStorage.setItem('rendercv_theme', 'classic');
+                    loadThemeTemplate('classic');
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            showToast('Failed to load templates', 'error');
+            setStatus('error', 'Template Error');
+        }
+    }
+
+    // Fetch example YAML for a theme (Local WASM)
+    async function loadThemeTemplate(themeName) {
+        setStatus('compiling', `Loading ${themeName} example...`);
+        try {
+            const data = await sendWorkerMessage("load_theme", {theme: themeName});
+            if (data.status === "error") {
+                throw new Error(data.detail);
+            }
+            if (window.editor) {
+                // Reset hidden sections on theme template load
+                hiddenSections = [];
+                localStorage.removeItem('rendercv_hidden_sections');
+
+                window.editor.setValue(data.yaml);
+                if (cvForm.activeTab === 'form') {
+                    cvForm.loadFromEditor();
+                }
+                // setting the value will auto-save to localStorage via onDidChangeModelContent
+                localStorage.setItem('rendercv_theme', themeName);
+
+                showToast(`Loaded "${themeName}" theme template`, 'info');
+                setStatus('ready', 'Ready');
+
+                // Render automatically when a theme is loaded
+                renderPdf();
+            }
+        } catch (err) {
+            console.error(err);
+            showToast('Failed to retrieve template contents: ' + err.message, 'error');
+            setStatus('error', 'Template load failed');
+        }
+    }
+
+    themeSelector.addEventListener('change', async (e) => {
+        const theme = e.target.value;
+        const yamlContent = window.editor ? window.editor.getValue() : '';
+
+        if (yamlContent.trim()) {
+            setStatus('compiling', `Switching style to ${theme}...`);
+            try {
+                const data = await sendWorkerMessage("switch_theme", {yaml: yamlContent, theme: theme});
+
+                if (data.status === "success") {
+                    // Reset hidden sections on style switch
+                    hiddenSections = [];
+                    localStorage.removeItem('rendercv_hidden_sections');
+
+                    window.editor.setValue(data.yaml);
+                    if (cvForm.activeTab === 'form') {
+                        cvForm.loadFromEditor();
+                    }
+                    localStorage.setItem('rendercv_theme', theme);
+                    showToast(`Switched style to "${theme}" while preserving your resume data!`, 'success');
+                    setStatus('ready', 'Ready');
+                    renderPdf();
+                    return;
+                } else {
+                    throw new Error(data.detail);
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to switch style: ' + err.message, 'error');
+                setStatus('error', 'Style switch failed');
+                const prevTheme = localStorage.getItem('rendercv_theme');
+                if (prevTheme) {
+                    themeSelector.value = prevTheme;
+                }
+            }
+        } else {
+            loadThemeTemplate(theme);
+        }
+    });
+
+    // Sections UI Management
+    function updateSectionsUI(serverSections) {
+        allSections = serverSections;
+        // Clean up hiddenSections to only keep sections that actually exist in the current YAML
+        hiddenSections = hiddenSections.filter(s => allSections.includes(s));
+
+        if (allSections.length === 0) {
+            sectionsCheckboxList.innerHTML = '<div style="color: var(--text-muted); font-size: 0.8rem; padding: 0.5rem 0; text-align: center;">No sections found</div>';
+            btnSections.disabled = true;
+            return;
+        }
+
+        btnSections.disabled = false;
+        sectionsCheckboxList.innerHTML = '';
+
+        allSections.forEach(section => {
+            const isChecked = !hiddenSections.includes(section);
+            const item = document.createElement('div');
+            item.className = 'checkbox-item';
+            item.addEventListener('click', (e) => {
+                e.stopPropagation(); // prevent closing dropdown
+                const checkbox = item.querySelector('input');
+                checkbox.checked = !checkbox.checked;
+                toggleSectionVisibility(section, checkbox.checked);
+            });
+
+            item.innerHTML = `
+                    <input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleSectionVisibility('${section}', this.checked)">
+                    <span style="flex: 1;">${escapeHtml(section)}</span>
+                `;
+            sectionsCheckboxList.appendChild(item);
+        });
+    }
+
+    function toggleSectionVisibility(section, isVisible) {
+        if (isVisible) {
+            hiddenSections = hiddenSections.filter(s => s !== section);
+        } else {
+            if (!hiddenSections.includes(section)) {
+                hiddenSections.push(section);
+            }
+        }
+        localStorage.setItem('rendercv_hidden_sections', JSON.stringify(hiddenSections));
+        renderPdf();
+        if (cvForm && typeof cvForm.renderSidebar === 'function') {
+            cvForm.renderSidebar();
+        }
+    }
+
+    // Core Render PDF Function
+    async function renderPdf() {
+        if (!window.editor) return;
+
+        const yamlContent = window.editor.getValue();
+        if (!yamlContent.trim()) {
+            showToast('Editor is empty!', 'error');
+            return;
+        }
+
+        setStatus('compiling', 'Validating CV & Generating Typst...');
+        loadingOverlay.classList.add('visible');
+        btnRender.disabled = true;
+
+        // Clear prior errors
+        clearErrors();
+
+        const startTime = performance.now();
+        try {
+            const data = await sendWorkerMessage("render", {
+                yaml: yamlContent,
+                hideSections: hiddenSections
+            });
+
+            if (data.status === "success") {
+                updateSectionsUI(data.sections);
+
+                let typstCode = data.typst;
+
+                // Rewrite package imports to local VFS paths
+                typstCode = typstCode.replace(
+                    '#import "@preview/rendercv:0.3.0": *',
+                    '#import "/rendercv/lib.typ": *'
+                );
+
+                const fontFamily = getActiveFontFamily(yamlContent);
+
+                setStatus('compiling', 'Compiling Typst to PDF...');
+                const comp = await prepareCompiler(fontFamily);
+
+                comp.mapShadow('/main.typ', new TextEncoder().encode(typstCode));
+
+                let compiledData = null;
+                let pdfBytes = null;
+                // Formats to try:
+                // 1 corresponds to PDF format in the web compiler.
+                // We also safely fall back to other indexes if 1 does not return a PDF header.
+                const formatsToTry = [1, 2, 3, 0];
+                for (const fmt of formatsToTry) {
+                    try {
+                        const result = await comp.compile({
+                            mainFilePath: '/main.typ',
+                            format: fmt
+                        });
+                        const bytes = result && result.result ? new Uint8Array(result.result) : (result ? new Uint8Array(result) : null);
+                        if (bytes && bytes.length > 4 && bytes[0] === 37 && bytes[1] === 80 && bytes[2] === 68 && bytes[3] === 70) {
+                            console.log(`Successfully compiled PDF using format code: ${fmt}`);
+                            compiledData = result;
+                            pdfBytes = bytes;
+                            break;
+                        }
+                    } catch (e) {
+                        console.warn(`Format compile failed for code ${fmt}:`, e);
+                    }
+                }
+
+                if (!pdfBytes) {
+                    const result = await comp.compile({ mainFilePath: '/main.typ' });
+                    pdfBytes = result && result.result ? new Uint8Array(result.result) : (result ? new Uint8Array(result) : null);
+                }
+
+                if (!pdfBytes || pdfBytes.length === 0) {
+                    throw new Error("Typst compilation returned empty or invalid PDF data");
+                }
+
+                const endTime = performance.now();
+                const duration = Math.round(endTime - startTime);
+
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                currentPdfBlob = blob;
+
+                const blobUrl = URL.createObjectURL(blob);
+                previewPlaceholder.style.display = 'none';
+                previewIframe.src = blobUrl;
+                previewIframe.style.display = 'block';
+
+                // Safely render to canvas using pdf.js if loaded and element is present
+                const canvas = document.getElementById('pdf-canvas');
+                if (canvas && window.pdfjsLib) {
+                    try {
+                        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.mjs';
+                        const loadingTask = pdfjsLib.getDocument({ data: pdfBytes });
+                        const pdf = await loadingTask.promise;
+                        const page = await pdf.getPage(1);
+                        const scale = 1.5;
+                        const viewport = page.getViewport({ scale: scale });
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+                        await page.render({ canvasContext: context, viewport: viewport }).promise;
+                    } catch (e) {
+                        console.warn("PDF.js preview canvas render skipped or failed:", e);
+                    }
+                }
+
+                btnDownload.disabled = false;
+                setStatus('ready', `Rendered in ${duration}ms`);
+                showToast('PDF compiled successfully!', 'success');
+            } else {
+                handleRenderingErrors(data);
+            }
+        } catch (err) {
+            console.error(err);
+            setStatus('error', 'Compilation failed');
+            showToast('Error during rendering: ' + err.message, 'error');
+        } finally {
+            loadingOverlay.classList.remove('visible');
+            btnRender.disabled = false;
+        }
+    }
+
+    btnRender.addEventListener('click', renderPdf);
+
+    // Error Handling & Integration with Monaco
+    function handleRenderingErrors(err) {
+        setStatus('error', 'Compilation Error');
+        toggleConsole(true); // Open log panel
+
+        let html = '';
+
+        if (err.type === 'validation_error' && err.errors && err.errors.length > 0) {
+            consoleTitle.classList.add('has-error');
+            errorCountBadge.textContent = err.errors.length;
+            errorCountBadge.style.display = 'inline-block';
+
+            err.errors.forEach(e => {
+                const lineLoc = e.line ? `Line ${e.line}, Col ${e.col}` : 'Global';
+                const lineBadge = e.line ? `<span class="error-line-badge" onclick="event.stopPropagation(); goToLine(${e.line}, ${e.col})">Line ${e.line}</span>` : '';
+
+                html += `
+                        <div class="error-item" onclick="goToLine(${e.line || 1}, ${e.col || 1})">
+                            <div class="error-meta">
+                                ${lineBadge}
+                                <span>${e.schema_location ? e.schema_location.join(' → ') : 'validation'}</span>
+                            </div>
+                            <div style="font-weight: 500;">${escapeHtml(e.message)}</div>
+                        </div>
+                    `;
+            });
+
+            showToast(`Validation failed with ${err.errors.length} error(s)`, 'error');
+        } else {
+            consoleTitle.classList.add('has-error');
+            errorCountBadge.style.display = 'none';
+
+            const errorDetail = err.detail || 'An unknown compilation error occurred';
+
+            html = `
+                    <div class="error-item" style="cursor: default;">
+                        <div class="error-meta">
+                            <span class="error-line-badge">System Error</span>
+                        </div>
+                        <div style="font-weight: 500; white-space: pre-wrap;">${escapeHtml(errorDetail)}</div>
+                    </div>
+                `;
+
+            if (err.traceback) {
+                html += `
+                        <div style="margin-top: 1rem; color: var(--text-muted); font-size: 0.75rem;">
+                            <strong>Traceback:</strong>
+                            <pre style="overflow-x: auto; margin-top: 0.5rem; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 4px;">${escapeHtml(err.traceback)}</pre>
+                        </div>
+                    `;
+            }
+
+            showToast('RenderCV compilation failed', 'error');
+        }
+
+        consoleContent.innerHTML = html;
+    }
+
+    function clearErrors() {
+        consoleTitle.classList.remove('has-error');
+        errorCountBadge.style.display = 'none';
+        consoleContent.innerHTML = '<div class="no-errors">No active validation issues</div>';
+    }
+
+    function goToLine(line, col = 1) {
+        if (!window.editor) return;
+        window.editor.focus();
+        window.editor.setPosition({lineNumber: line, column: col});
+        window.editor.revealLineInCenter(line);
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text
+            .toString()
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // Download Action
+    btnDownload.addEventListener('click', () => {
+        if (!currentPdfBlob) return;
+
+        const theme = themeSelector.value || 'cv';
+
+        const url = URL.createObjectURL(currentPdfBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `RenderCV_Resume_${theme}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('PDF downloaded successfully!', 'success');
+    });
+</script>
 </body>
 </html>
