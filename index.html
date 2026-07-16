@@ -27,7 +27,7 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap"
           rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://mozilla.github.io/pdf.js/build/pdf.mjs" type="module"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -797,9 +797,53 @@
         }
 
         /* PDF Preview Section */
+        .preview-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-mode-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background-color: var(--bg-surface-elevated);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 5;
+            flex-shrink: 0;
+        }
+
+        .preview-mode-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-family: var(--font-sans);
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: 1px solid transparent;
+            background: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .preview-mode-btn:hover {
+            color: var(--text-primary);
+            background-color: rgba(255, 255, 255, 0.04);
+        }
+
+        .preview-mode-btn.active {
+            color: var(--primary-hover);
+            background-color: var(--primary-glow);
+            border-color: rgba(139, 92, 246, 0.2);
+        }
+
         .preview-iframe {
+            flex: 1;
             width: 100%;
-            height: 100%;
             border: none;
             background-color: var(--bg-base);
         }
@@ -1428,7 +1472,20 @@
                 + Enter</kbd> to compile your YAML resume.</p>
         </div>
 
+        <!-- PDF Viewer Mode Selector -->
+        <div id="preview-mode-toolbar" class="preview-mode-toolbar" style="display: none;">
+            <button class="preview-mode-btn" id="btn-view-iframe">
+                <i data-lucide="file-text"></i>
+                <span>Standard</span>
+            </button>
+            <button class="preview-mode-btn" id="btn-view-canvas">
+                <i data-lucide="image"></i>
+                <span>Canvas Viewer</span>
+            </button>
+        </div>
+
         <iframe class="preview-iframe" id="preview-iframe" style="display: none;"></iframe>
+        <div id="canvas-preview-container" style="display: none; flex: 1; width: 100%; overflow-y: auto; padding: 1rem; box-sizing: border-box;"></div>
     </div>
 </main>
 
@@ -1496,7 +1553,9 @@
     const toastContainer = document.getElementById('toast-container');
 
     let currentPdfBlob = null;
+    let currentPdfBytes = null;
     let isConsoleExpanded = false;
+    let currentViewerMode = window.innerWidth <= 768 ? 'canvas' : 'iframe';
 
     // Sections state
     let allSections = [];
@@ -1561,6 +1620,22 @@
                     mobileBtnPreview.classList.add('active');
                     mobileBtnEditor.classList.remove('active');
                     workspace.classList.add('show-preview');
+                });
+            }
+
+            // PDF Viewer Toggling Button logic
+            const btnViewIframe = document.getElementById('btn-view-iframe');
+            const btnViewCanvas = document.getElementById('btn-view-canvas');
+
+            if (btnViewIframe && btnViewCanvas) {
+                btnViewIframe.addEventListener('click', () => {
+                    currentViewerMode = 'iframe';
+                    updatePdfPreview();
+                });
+
+                btnViewCanvas.addEventListener('click', () => {
+                    currentViewerMode = 'canvas';
+                    updatePdfPreview();
                 });
             }
         },
@@ -3049,30 +3124,10 @@
 
                 const blob = new Blob([pdfBytes], { type: 'application/pdf' });
                 currentPdfBlob = blob;
+                currentPdfBytes = pdfBytes;
 
-                const blobUrl = URL.createObjectURL(blob);
                 previewPlaceholder.style.display = 'none';
-                previewIframe.src = blobUrl;
-                previewIframe.style.display = 'block';
-
-                // Safely render to canvas using pdf.js if loaded and element is present
-                const canvas = document.getElementById('pdf-canvas');
-                if (canvas && window.pdfjsLib) {
-                    try {
-                        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.2.67/pdf.worker.min.mjs';
-                        const loadingTask = pdfjsLib.getDocument({ data: pdfBytes });
-                        const pdf = await loadingTask.promise;
-                        const page = await pdf.getPage(1);
-                        const scale = 1.5;
-                        const viewport = page.getViewport({ scale: scale });
-                        const context = canvas.getContext('2d');
-                        canvas.height = viewport.height;
-                        canvas.width = viewport.width;
-                        await page.render({ canvasContext: context, viewport: viewport }).promise;
-                    } catch (e) {
-                        console.warn("PDF.js preview canvas render skipped or failed:", e);
-                    }
-                }
+                await updatePdfPreview();
 
                 btnDownload.disabled = false;
                 setStatus('ready', `Rendered in ${duration}ms`);
@@ -3212,6 +3267,74 @@
         URL.revokeObjectURL(url);
         showToast('PDF downloaded successfully!', 'success');
     });
+
+    // Update PDF Preview Viewer (Iframe vs Canvas list)
+    async function updatePdfPreview() {
+        const previewIframe = document.getElementById('preview-iframe');
+        const canvasContainer = document.getElementById('canvas-preview-container');
+        const toolbar = document.getElementById('preview-mode-toolbar');
+        const btnViewIframe = document.getElementById('btn-view-iframe');
+        const btnViewCanvas = document.getElementById('btn-view-canvas');
+
+        if (!currentPdfBlob) return;
+
+        toolbar.style.display = 'flex';
+
+        if (currentViewerMode === 'canvas') {
+            btnViewCanvas.classList.add('active');
+            btnViewIframe.classList.remove('active');
+            previewIframe.style.display = 'none';
+            canvasContainer.style.display = 'block';
+
+            if (currentPdfBytes && window.pdfjsLib) {
+                try {
+                    canvasContainer.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 2rem;">Rendering PDF pages...</div>';
+                    // Configure worker path matching PDF.js version 3.11.174
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                    // Pass a copy of the Uint8Array to avoid the worker detaching the original buffer
+                    const pdfBytesCopy = new Uint8Array(currentPdfBytes);
+                    const loadingTask = pdfjsLib.getDocument({ data: pdfBytesCopy });
+                    const pdf = await loadingTask.promise;
+                    
+                    canvasContainer.innerHTML = '';
+                    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                        const page = await pdf.getPage(pageNum);
+                        const canvas = document.createElement('canvas');
+                        canvas.style.maxWidth = '100%';
+                        canvas.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+                        canvas.style.borderRadius = '4px';
+                        canvas.style.background = 'white';
+                        canvas.style.marginBottom = '1.5rem';
+                        canvas.style.display = 'block';
+                        canvas.style.marginLeft = 'auto';
+                        canvas.style.marginRight = 'auto';
+                        
+                        canvasContainer.appendChild(canvas);
+
+                        const viewport = page.getViewport({ scale: 1.5 });
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+
+                        await page.render({ canvasContext: context, viewport: viewport }).promise;
+                    }
+                } catch (e) {
+                    console.error("PDF.js preview canvas render failed:", e);
+                    canvasContainer.innerHTML = `<div style="color: var(--error); text-align: center; padding: 2rem;">Failed to render PDF using canvas: ${e.message}</div>`;
+                }
+            } else {
+                canvasContainer.innerHTML = '<div style="color: var(--error); text-align: center; padding: 2rem;">Canvas PDF viewer library is not loaded.</div>';
+            }
+        } else {
+            btnViewIframe.classList.add('active');
+            btnViewCanvas.classList.remove('active');
+            canvasContainer.style.display = 'none';
+            previewIframe.style.display = 'block';
+            
+            const newUrl = URL.createObjectURL(currentPdfBlob);
+            previewIframe.src = newUrl;
+        }
+    }
 </script>
 </body>
 </html>
