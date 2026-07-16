@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RenderCV — Live YAML Editor</title>
-    
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
@@ -879,6 +879,51 @@
         .toast-close:hover {
             color: var(--text-primary);
         }
+
+        /* Sidebar Section Reordering Action Buttons */
+        .sidebar-item-actions {
+            display: flex;
+            gap: 2px;
+            margin-left: auto;
+            opacity: 0;
+            transform: translateX(5px);
+            transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar-item:hover .sidebar-item-actions {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .btn-sidebar-action {
+            background: none;
+            border: none;
+            padding: 2px;
+            border-radius: 4px;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .btn-sidebar-action:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+            color: var(--primary);
+        }
+
+        .btn-sidebar-action[disabled] {
+            opacity: 0.3;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .sidebar-item.hidden-section span,
+        .sidebar-item.hidden-section i[data-lucide="folder"] {
+            opacity: 0.5;
+            color: var(--text-muted);
+        }
     </style>
 </head>
 <body>
@@ -904,7 +949,7 @@
             </div>
 
             <!-- Sections Visibility Toggle Dropdown -->
-            <div class="dropdown-wrapper">
+            <div class="dropdown-wrapper hidden-section" style="display: none">
                 <button id="btn-sections" class="btn btn-secondary" disabled>
                     <i data-lucide="eye"></i>
                     <span>Sections</span>
@@ -951,7 +996,7 @@
             </div>
 
             <div id="editor-container" style="display: none;"></div>
-            
+
             <!-- Collapsible Console/Error panel -->
             <div class="console-panel" id="console-panel">
                 <div class="console-header" id="console-header">
@@ -975,13 +1020,13 @@
                 <div style="font-weight: 600;">Compiling Typst to PDF...</div>
                 <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;">This takes less than a second</div>
             </div>
-            
+
             <div class="preview-placeholder" id="preview-placeholder">
                 <i data-lucide="file-text"></i>
                 <h3>PDF Preview</h3>
                 <p>Click <strong>Render PDF</strong> or press <kbd style="background: rgba(255,255,255,0.06); padding: 0.1rem 0.3rem; border-radius: 4px; font-size: 0.75rem; border: 1px solid var(--border-color);">Cmd + Enter</kbd> to compile your YAML resume.</p>
             </div>
-            
+
             <iframe class="preview-iframe" id="preview-iframe" style="display: none;"></iframe>
         </div>
     </main>
@@ -1011,7 +1056,7 @@
 
         let currentPdfBlob = null;
         let isConsoleExpanded = false;
-        
+
         // Sections state
         let allSections = [];
         let hiddenSections = [];
@@ -1022,7 +1067,7 @@
             activeTab: 'form',
             activeSection: 'basic_info',
             expandedItems: {},
-            
+
             schemas: {
                 education: { institution: '', area: '', degree: '', location: '', start_date: '', end_date: '', highlights: [] },
                 experience: { company: '', position: '', location: '', start_date: '', end_date: '', highlights: [] },
@@ -1164,10 +1209,25 @@
                 const sections = this.data.cv.sections || {};
                 const sectionNames = Object.keys(sections);
 
-                sectionNames.forEach(secName => {
+                sectionNames.forEach((secName, idx) => {
+                    const isVisible = !hiddenSections.includes(secName);
                     const el = document.createElement('div');
-                    el.className = `sidebar-item ${this.activeSection === secName ? 'active' : ''}`;
-                    el.innerHTML = `<i data-lucide="folder"></i><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${this.escapeHtml(secName)}</span>`;
+                    el.className = `sidebar-item ${this.activeSection === secName ? 'active' : ''} ${isVisible ? '' : 'hidden-section'}`;
+                    el.innerHTML = `
+                        <i data-lucide="folder"></i>
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">${this.escapeHtml(secName)}</span>
+                        <div class="sidebar-item-actions">
+                            <button class="btn-sidebar-action" title="${isVisible ? 'Hide Section' : 'Show Section'}" onclick="event.stopPropagation(); cvForm.toggleVisibility('${this.escapeHtml(secName)}')">
+                                <i data-lucide="${isVisible ? 'eye' : 'eye-off'}" style="width: 12px; height: 12px;"></i>
+                            </button>
+                            <button class="btn-sidebar-action" title="Move Up" ${idx === 0 ? 'disabled' : ''} onclick="event.stopPropagation(); cvForm.moveSectionUp('${this.escapeHtml(secName)}')">
+                                <i data-lucide="chevron-up" style="width: 12px; height: 12px;"></i>
+                            </button>
+                            <button class="btn-sidebar-action" title="Move Down" ${idx === sectionNames.length - 1 ? 'disabled' : ''} onclick="event.stopPropagation(); cvForm.moveSectionDown('${this.escapeHtml(secName)}')">
+                                <i data-lucide="chevron-down" style="width: 12px; height: 12px;"></i>
+                            </button>
+                        </div>
+                    `;
                     el.onclick = () => {
                         this.activeSection = secName;
                         this.render();
@@ -1202,12 +1262,12 @@
 
             renderBasicInfo(container) {
                 const cv = this.data.cv;
-                
+
                 container.innerHTML = `
                     <div class="form-section-title">
                         <span>Basic Info</span>
                     </div>
-                    
+
                     <div class="warning-banner">
                         <i data-lucide="info"></i>
                         <span>Editing fields here instantly synchronizes with the YAML Code.</span>
@@ -1273,7 +1333,7 @@
                             <i data-lucide="plus" style="width: 14px; height: 14px; margin-right: 0.25rem;"></i>Add Network
                         </button>
                     </div>
-                    
+
                     <div class="warning-banner">
                         <i data-lucide="info"></i>
                         <span>Manage LinkedIn, GitHub, Twitter/X and custom social profiles.</span>
@@ -1354,7 +1414,7 @@
                             </button>
                         </div>
                     </div>
-                    
+
                     <div id="section-items" style="display:flex; flex-direction:column; gap:0.75rem;"></div>
                 `;
 
@@ -1372,7 +1432,7 @@
 
                     const card = document.createElement('div');
                     card.className = `form-card ${isExpanded ? 'expanded' : ''}`;
-                    
+
                     let headerText = `Item #${idx + 1}`;
                     if (isTextItem) {
                         headerText = item.substring(0, 50) + (item.length > 50 ? '...' : '');
@@ -1397,7 +1457,7 @@
                     `;
 
                     const cardBody = card.querySelector('.form-card-body');
-                    
+
                     if (isTextItem) {
                         cardBody.innerHTML = `
                             <div class="form-group" style="margin-bottom:0;">
@@ -1413,12 +1473,12 @@
                         });
                     } else if (item && typeof item === 'object') {
                         const keys = Object.keys(item);
-                        
+
                         keys.forEach(key => {
                             const val = item[key];
                             const formGroup = document.createElement('div');
                             formGroup.className = 'form-group';
-                            
+
                             const label = document.createElement('label');
                             label.textContent = key.replace(/_/g, ' ');
                             formGroup.appendChild(label);
@@ -1426,7 +1486,7 @@
                             if (Array.isArray(val)) {
                                 const listEditor = document.createElement('div');
                                 listEditor.className = 'list-editor';
-                                
+
                                 val.forEach((subval, subidx) => {
                                     const itemRow = document.createElement('div');
                                     itemRow.className = 'list-editor-item';
@@ -1444,7 +1504,7 @@
                                 addSubBtn.style.alignSelf = 'flex-start';
                                 addSubBtn.innerHTML = '<i data-lucide="plus" style="width: 12px; height: 12px; margin-right: 0.25rem;"></i>Add Bullet/Author';
                                 addSubBtn.onclick = () => this.addListSubitem(sectionName, idx, key);
-                                
+
                                 formGroup.appendChild(listEditor);
                                 formGroup.appendChild(addSubBtn);
 
@@ -1472,7 +1532,7 @@
                                     const i = parseInt(e.target.dataset.idx);
                                     sections[sectionName][i][k] = e.target.value;
                                     this.updateEditor();
-                                    
+
                                     const previewKeys = ['institution', 'company', 'name', 'title', 'label', 'bullet', 'number', 'reversed_number'];
                                     if (previewKeys.includes(k)) {
                                         card.querySelector('.form-card-title span').textContent = e.target.value || `Item #${i + 1}`;
@@ -1502,13 +1562,21 @@
                     return;
                 }
 
-                const value = sections[oldName];
-                sections[newName] = value;
-                delete sections[oldName];
+                // Preserve section keys order on rename
+                const newSections = {};
+                Object.keys(sections).forEach(k => {
+                    if (k === oldName) {
+                        newSections[newName] = sections[oldName];
+                    } else {
+                        newSections[k] = sections[k];
+                    }
+                });
+                this.data.cv.sections = newSections;
 
                 this.activeSection = newName;
                 this.updateEditor();
                 this.render();
+                renderPdf();
             },
 
             deleteSection(sectionName) {
@@ -1517,14 +1585,68 @@
                     this.activeSection = 'basic_info';
                     this.updateEditor();
                     this.render();
+                    renderPdf();
                     showToast(`Deleted section "${sectionName}"`, 'success');
                 }
+            },
+
+            toggleVisibility(secName) {
+                const isVisible = !hiddenSections.includes(secName);
+                toggleSectionVisibility(secName, !isVisible);
+            },
+
+            moveSectionUp(secName) {
+                const sections = this.data.cv.sections;
+                if (!sections) return;
+                const keys = Object.keys(sections);
+                const index = keys.indexOf(secName);
+                if (index <= 0) return; // Can't move up further
+
+                // Swap in the keys array
+                const temp = keys[index];
+                keys[index] = keys[index - 1];
+                keys[index - 1] = temp;
+
+                // Rebuild sections object
+                const newSections = {};
+                keys.forEach(k => {
+                    newSections[k] = sections[k];
+                });
+                this.data.cv.sections = newSections;
+
+                this.updateEditor();
+                this.render();
+                renderPdf();
+            },
+
+            moveSectionDown(secName) {
+                const sections = this.data.cv.sections;
+                if (!sections) return;
+                const keys = Object.keys(sections);
+                const index = keys.indexOf(secName);
+                if (index < 0 || index >= keys.length - 1) return; // Can't move down further
+
+                // Swap in the keys array
+                const temp = keys[index];
+                keys[index] = keys[index + 1];
+                keys[index + 1] = temp;
+
+                // Rebuild sections object
+                const newSections = {};
+                keys.forEach(k => {
+                    newSections[k] = sections[k];
+                });
+                this.data.cv.sections = newSections;
+
+                this.updateEditor();
+                this.render();
+                renderPdf();
             },
 
             addItemToSection(sectionName) {
                 const sections = this.data.cv.sections;
                 const items = sections[sectionName];
-                
+
                 let newItem = '';
                 const lowercaseSecName = sectionName.toLowerCase();
                 let matched = false;
@@ -1589,7 +1711,7 @@
                 }
 
                 const type = prompt("Choose entry type:\n1. Experience/Education/Project (Standard Card)\n2. Simple text points list\n3. Skill label-value list\n\nEnter 1, 2, or 3 (default 1):", "1");
-                
+
                 let initialItem;
                 if (type === "2") {
                     initialItem = ["Sample bullet point"];
@@ -1633,7 +1755,7 @@
         function showToast(message, type = 'info') {
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
-            
+
             let iconName = 'info';
             if (type === 'success') iconName = 'check-circle';
             if (type === 'error') iconName = 'alert-triangle';
@@ -1643,10 +1765,10 @@
                 <span>${message}</span>
                 <i data-lucide="x" class="toast-close"></i>
             `;
-            
+
             toastContainer.appendChild(toast);
             lucide.createIcons({ attrs: { class: 'lucide' }, nameAttr: 'data-lucide', node: toast });
-            
+
             toast.querySelector('.toast-close').addEventListener('click', () => {
                 toast.remove();
             });
@@ -1736,15 +1858,15 @@
             });
 
             setStatus('ready', 'Editor ready');
-            
+
             // Initialize cvForm
             cvForm.init();
-            
+
             // Check for saved state in localStorage
             const savedYaml = localStorage.getItem('rendercv_yaml');
             const savedTheme = localStorage.getItem('rendercv_theme');
             const savedHidden = localStorage.getItem('rendercv_hidden_sections');
-            
+
             if (savedHidden) {
                 try {
                     hiddenSections = JSON.parse(savedHidden);
@@ -1752,7 +1874,7 @@
                     console.error("Error parsing saved hidden sections", e);
                 }
             }
-            
+
             loadTemplates(savedYaml, savedTheme);
         });
 
@@ -1761,7 +1883,7 @@
             try {
                 const res = await fetch('/api/templates');
                 const templates = await res.json();
-                
+
                 themeSelector.innerHTML = '<option value="" disabled selected>Load example theme...</option>';
                 templates.forEach(t => {
                     const option = document.createElement('option');
@@ -1769,10 +1891,10 @@
                     option.textContent = t.charAt(0).toUpperCase() + t.slice(1);
                     themeSelector.appendChild(option);
                 });
-                
+
                 themeSelector.disabled = false;
                 btnRender.disabled = false;
-                
+
                 // If a saved YAML exists, restore it; otherwise load 'classic' by default
                 if (savedYaml) {
                     window.editor.setValue(savedYaml);
@@ -1809,17 +1931,17 @@
                     // Reset hidden sections on theme template load
                     hiddenSections = [];
                     localStorage.removeItem('rendercv_hidden_sections');
-                    
+
                     window.editor.setValue(data.yaml);
                     if (cvForm.activeTab === 'form') {
                         cvForm.loadFromEditor();
                     }
                     // setting the value will auto-save to localStorage via onDidChangeModelContent
                     localStorage.setItem('rendercv_theme', themeName);
-                    
+
                     showToast(`Loaded "${themeName}" theme template`, 'info');
                     setStatus('ready', 'Ready');
-                    
+
                     // Render automatically when a theme is loaded
                     renderPdf();
                 }
@@ -1833,7 +1955,7 @@
         themeSelector.addEventListener('change', async (e) => {
             const theme = e.target.value;
             const yamlContent = window.editor ? window.editor.getValue() : '';
-            
+
             if (yamlContent.trim()) {
                 setStatus('compiling', `Switching style to ${theme}...`);
                 try {
@@ -1842,13 +1964,13 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ yaml: yamlContent, theme: theme })
                     });
-                    
+
                     if (res.ok) {
                         const data = await res.json();
                         // Reset hidden sections on style switch
                         hiddenSections = [];
                         localStorage.removeItem('rendercv_hidden_sections');
-                        
+
                         window.editor.setValue(data.yaml);
                         if (cvForm.activeTab === 'form') {
                             cvForm.loadFromEditor();
@@ -1874,7 +1996,7 @@
                     return;
                 }
             }
-            
+
             // Fallback if editor is empty: load clean default template
             localStorage.setItem('rendercv_theme', theme);
             loadThemeTemplate(theme);
@@ -1885,16 +2007,16 @@
             allSections = serverSections;
             // Clean up hiddenSections to only keep sections that actually exist in the current YAML
             hiddenSections = hiddenSections.filter(s => allSections.includes(s));
-            
+
             if (allSections.length === 0) {
                 sectionsCheckboxList.innerHTML = '<div style="color: var(--text-muted); font-size: 0.8rem; padding: 0.5rem 0; text-align: center;">No sections found</div>';
                 btnSections.disabled = true;
                 return;
             }
-            
+
             btnSections.disabled = false;
             sectionsCheckboxList.innerHTML = '';
-            
+
             allSections.forEach(section => {
                 const isChecked = !hiddenSections.includes(section);
                 const item = document.createElement('div');
@@ -1905,7 +2027,7 @@
                     checkbox.checked = !checkbox.checked;
                     toggleSectionVisibility(section, checkbox.checked);
                 });
-                
+
                 item.innerHTML = `
                     <input type="checkbox" ${isChecked ? 'checked' : ''} onclick="event.stopPropagation(); toggleSectionVisibility('${section}', this.checked)">
                     <span style="flex: 1;">${escapeHtml(section)}</span>
@@ -1924,12 +2046,15 @@
             }
             localStorage.setItem('rendercv_hidden_sections', JSON.stringify(hiddenSections));
             renderPdf();
+            if (cvForm && typeof cvForm.renderSidebar === 'function') {
+                cvForm.renderSidebar();
+            }
         }
 
         // Core Render PDF Function
         async function renderPdf() {
             if (!window.editor) return;
-            
+
             const yamlContent = window.editor.getValue();
             if (!yamlContent.trim()) {
                 showToast('Editor is empty!', 'error');
@@ -1940,7 +2065,7 @@
             setStatus('compiling', 'Compiling PDF...');
             loadingOverlay.classList.add('visible');
             btnRender.disabled = true;
-            
+
             // Clear prior errors
             clearErrors();
 
@@ -1949,7 +2074,7 @@
                 const res = await fetch('/api/render', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         yaml: yamlContent,
                         hide_sections: hiddenSections
                     })
@@ -1973,14 +2098,14 @@
                     // Load PDF as blob
                     const blob = await res.blob();
                     currentPdfBlob = blob;
-                    
+
                     const blobUrl = URL.createObjectURL(blob);
-                    
+
                     // Display PDF
                     previewPlaceholder.style.display = 'none';
                     previewIframe.src = blobUrl;
                     previewIframe.style.display = 'block';
-                    
+
                     btnDownload.disabled = false;
                     setStatus('ready', `Rendered in ${duration}ms`);
                     showToast('PDF compiled successfully!', 'success');
@@ -2004,18 +2129,18 @@
         function handleRenderingErrors(err) {
             setStatus('error', 'Compilation Error');
             toggleConsole(true); // Open log panel
-            
+
             let html = '';
-            
+
             if (err.type === 'validation_error' && err.errors && err.errors.length > 0) {
                 consoleTitle.classList.add('has-error');
                 errorCountBadge.textContent = err.errors.length;
                 errorCountBadge.style.display = 'inline-block';
-                
+
                 err.errors.forEach(e => {
                     const lineLoc = e.line ? `Line ${e.line}, Col ${e.col}` : 'Global';
                     const lineBadge = e.line ? `<span class="error-line-badge" onclick="event.stopPropagation(); goToLine(${e.line}, ${e.col})">Line ${e.line}</span>` : '';
-                    
+
                     html += `
                         <div class="error-item" onclick="goToLine(${e.line || 1}, ${e.col || 1})">
                             <div class="error-meta">
@@ -2026,14 +2151,14 @@
                         </div>
                     `;
                 });
-                
+
                 showToast(`Validation failed with ${err.errors.length} error(s)`, 'error');
             } else {
                 consoleTitle.classList.add('has-error');
                 errorCountBadge.style.display = 'none';
-                
+
                 const errorDetail = err.detail || 'An unknown compilation error occurred';
-                
+
                 html = `
                     <div class="error-item" style="cursor: default;">
                         <div class="error-meta">
@@ -2042,7 +2167,7 @@
                         <div style="font-weight: 500; white-space: pre-wrap;">${escapeHtml(errorDetail)}</div>
                     </div>
                 `;
-                
+
                 if (err.traceback) {
                     html += `
                         <div style="margin-top: 1rem; color: var(--text-muted); font-size: 0.75rem;">
@@ -2051,10 +2176,10 @@
                         </div>
                     `;
                 }
-                
+
                 showToast('RenderCV compilation failed', 'error');
             }
-            
+
             consoleContent.innerHTML = html;
         }
 
@@ -2085,9 +2210,9 @@
         // Download Action
         btnDownload.addEventListener('click', () => {
             if (!currentPdfBlob) return;
-            
+
             const theme = themeSelector.value || 'cv';
-            
+
             const url = URL.createObjectURL(currentPdfBlob);
             const a = document.createElement('a');
             a.href = url;
