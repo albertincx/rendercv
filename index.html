@@ -1399,6 +1399,11 @@
             <span>Render PDF</span>
         </button>
 
+        <button id="btn-download-yaml" class="btn btn-secondary">
+            <i data-lucide="file-code"></i>
+            <span>YAML</span>
+        </button>
+
         <button id="btn-download" class="btn btn-secondary" disabled>
             <i data-lucide="download"></i>
             <span>Download</span>
@@ -1510,7 +1515,7 @@
         </div>
         <h2 id="modal-title">Разрешить автономную работу?</h2>
         <p id="modal-desc">Чтобы компилировать ваше резюме прямо в браузере без отправки данных на сервер, необходимо загрузить
-            локальные библиотеки WebAssembly и среду Python (около 15 МБ при первой загрузке).</p>
+            локальные библиотеки WebAssembly и среду Python (около 45 МБ при первой загрузке).</p>
         <div class="permission-checkbox-container" style="margin-bottom: 1rem;">
             <label style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; user-select: none;">
                 <input type="checkbox" id="remember-permission" checked style="accent-color: var(--primary);">
@@ -2445,7 +2450,7 @@
     const modalTranslations = {
         ru: {
             title: "Разрешить автономную работу?",
-            desc: "Чтобы компилировать ваше резюме прямо в браузере без отправки данных на сервер, необходимо загрузить локальные библиотеки WebAssembly и среду Python (около 15 МБ при первой загрузке).",
+            desc: "Чтобы компилировать ваше резюме прямо в браузере без отправки данных на сервер, необходимо загрузить локальные библиотеки WebAssembly и среду Python (около 45 МБ при первой загрузке).",
             remember: "Запомнить мой выбор",
             decline: "Отмена",
             allow: "Разрешить",
@@ -2454,7 +2459,7 @@
         },
         en: {
             title: "Enable Offline Compiler?",
-            desc: "To compile your resume directly in the browser without sending data to the server, you need to download local WebAssembly libraries and the Python runtime (approx. 15 MB on first load).",
+            desc: "To compile your resume directly in the browser without sending data to the server, you need to download local WebAssembly libraries and the Python runtime (approx. 45 MB on first load).",
             remember: "Remember my choice",
             decline: "Decline",
             allow: "Allow",
@@ -3276,6 +3281,34 @@
         showToast('PDF downloaded successfully!', 'success');
     });
 
+    // Download YAML Action
+    document.getElementById('btn-download-yaml').addEventListener('click', () => {
+        const yamlContent = window.editor ? window.editor.getValue() : '';
+        if (!yamlContent.trim()) {
+            showToast('Editor is empty — nothing to download.', 'error');
+            return;
+        }
+
+        let filename = 'resume';
+        try {
+            const doc = jsyaml.load(yamlContent);
+            if (doc && doc.cv && doc.cv.name) {
+                filename = doc.cv.name.trim().replace(/\s+/g, '_') || 'resume';
+            }
+        } catch (e) { /* ignore parse errors, use default filename */ }
+
+        const blob = new Blob([yamlContent], { type: 'text/yaml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${filename}.yaml`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('YAML downloaded!', 'success');
+    });
+
     // Update PDF Preview Viewer (Iframe vs Canvas list)
     async function updatePdfPreview() {
         const previewIframe = document.getElementById('preview-iframe');
@@ -3303,7 +3336,7 @@
                     const pdfBytesCopy = new Uint8Array(currentPdfBytes);
                     const loadingTask = pdfjsLib.getDocument({ data: pdfBytesCopy });
                     const pdf = await loadingTask.promise;
-                    
+
                     canvasContainer.innerHTML = '';
                     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
                         const page = await pdf.getPage(pageNum);
@@ -3316,7 +3349,7 @@
                         canvas.style.display = 'block';
                         canvas.style.marginLeft = 'auto';
                         canvas.style.marginRight = 'auto';
-                        
+
                         canvasContainer.appendChild(canvas);
 
                         const viewport = page.getViewport({ scale: 1.5 });
@@ -3338,7 +3371,7 @@
             btnViewCanvas.classList.remove('active');
             canvasContainer.style.display = 'none';
             previewIframe.style.display = 'block';
-            
+
             const newUrl = URL.createObjectURL(currentPdfBlob);
             previewIframe.src = newUrl;
         }
