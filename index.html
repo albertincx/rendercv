@@ -1095,6 +1095,212 @@
             opacity: 0.5;
             color: var(--text-muted);
         }
+
+        /* Mobile responsive workspace tabs bar (hidden on desktop) */
+        .mobile-workspace-tabs {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                height: 100dvh; /* use dynamic viewport height */
+            }
+
+            header {
+                padding: 0.5rem 0.75rem;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                height: auto;
+            }
+
+            .brand {
+                gap: 0.5rem;
+            }
+
+            .brand-name {
+                font-size: 1rem;
+            }
+
+            .brand-tag {
+                display: none;
+            }
+
+            .controls {
+                gap: 0.4rem;
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            #status-text {
+                display: none;
+            }
+
+            .status-container {
+                padding-right: 0.25rem;
+                border-right: none;
+            }
+
+            header .btn {
+                padding: 0.4rem 0.6rem;
+                font-size: 0.8rem;
+                gap: 0.25rem;
+            }
+
+            header .btn span {
+                display: none; /* icons only */
+            }
+
+            .select-wrapper select {
+                max-width: 110px;
+                font-size: 0.75rem;
+                padding: 0.4rem 1.75rem 0.4rem 0.5rem;
+            }
+
+            .select-wrapper .chevron {
+                right: 0.4rem;
+                width: 12px;
+                height: 12px;
+            }
+
+            .workspace {
+                flex-direction: column;
+            }
+
+            .panel {
+                width: 100% !important;
+                height: 100% !important;
+            }
+
+            /* Mobile Navigation Tab Bar */
+            .mobile-workspace-tabs {
+                display: flex;
+                background-color: var(--bg-surface-elevated);
+                border-bottom: 1px solid var(--border-color);
+                height: 48px;
+                flex-shrink: 0;
+                width: 100%;
+            }
+
+            .mobile-tab-btn {
+                flex: 1;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+                border: none;
+                background: none;
+                color: var(--text-secondary);
+                font-family: var(--font-sans);
+                font-size: 0.9rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: var(--transition);
+                border-bottom: 2px solid transparent;
+            }
+
+            .mobile-tab-btn:hover {
+                color: var(--text-primary);
+            }
+
+            .mobile-tab-btn.active {
+                color: var(--primary-hover);
+                border-bottom-color: var(--primary);
+                background-color: rgba(139, 92, 246, 0.05);
+            }
+
+            /* Toggle between Editor and Preview */
+            .workspace.show-preview .editor-panel {
+                display: none !important;
+            }
+
+            .workspace:not(.show-preview) .preview-panel {
+                display: none !important;
+            }
+
+            /* Responsive Form Editor layout */
+            .form-editor-layout {
+                flex-direction: column;
+            }
+
+            .form-sidebar {
+                width: 100% !important;
+                flex-direction: row !important;
+                overflow-x: auto !important;
+                white-space: nowrap !important;
+                padding: 0.5rem !important;
+                gap: 0.5rem !important;
+                height: auto !important;
+                border-right: none !important;
+                border-bottom: 1px solid var(--border-color) !important;
+                flex-shrink: 0;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* Custom scrollbar behavior for mobile horizontal scroll */
+            .form-sidebar::-webkit-scrollbar {
+                height: 4px;
+            }
+            .form-sidebar::-webkit-scrollbar-thumb {
+                background: var(--border-hover);
+                border-radius: 2px;
+            }
+
+            /* Make sidebar items display inline-flex */
+            .form-sidebar .sidebar-item {
+                display: inline-flex !important;
+                flex-direction: row;
+                align-items: center;
+                padding: 0.4rem 0.75rem !important;
+                white-space: nowrap !important;
+                flex-shrink: 0;
+                width: auto !important;
+                height: auto !important;
+            }
+
+            /* Hide decorative vertical dividers and text header inside sidebar */
+            .form-sidebar > div[style*="height: 1px"],
+            .form-sidebar > div[style*="font-size: 0.75rem"] {
+                display: none !important;
+            }
+
+            /* Styling active item on horizontal scroll */
+            .form-sidebar .sidebar-item.active {
+                border-left: none !important;
+                border-bottom: 2px solid var(--primary) !important;
+                padding-left: 0.75rem !important;
+                padding-bottom: calc(0.4rem - 2px) !important;
+                border-radius: 6px 6px 0 0;
+            }
+
+            /* Hide move actions in horizontal list on mobile */
+            .form-sidebar .sidebar-item-actions {
+                display: none !important;
+            }
+
+            /* Make form main take proper padding */
+            .form-main {
+                padding: 1rem;
+                gap: 1rem;
+            }
+
+            /* Monaco editor styling on mobile */
+            #editor-container {
+                height: 100%;
+                width: 100%;
+            }
+
+            .permission-modal-content {
+                padding: 1.5rem 1rem;
+            }
+
+            .toast-container {
+                bottom: 60px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: calc(100% - 2rem);
+                max-width: 380px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1149,6 +1355,18 @@
 </header>
 
 <main class="workspace">
+    <!-- Mobile Workspace Tabs (visible only on mobile) -->
+    <div class="mobile-workspace-tabs" id="mobile-workspace-tabs">
+        <button class="mobile-tab-btn active" id="mobile-btn-editor">
+            <i data-lucide="edit-3"></i>
+            <span>Editor</span>
+        </button>
+        <button class="mobile-tab-btn" id="mobile-btn-preview">
+            <i data-lucide="eye"></i>
+            <span>Preview</span>
+        </button>
+    </div>
+
     <!-- Left Panel: Editor & Logs -->
     <div class="panel editor-panel">
         <div class="editor-tabs">
@@ -1323,6 +1541,28 @@
             btnTabYaml.addEventListener('click', () => {
                 this.switchTab('yaml');
             });
+
+            // Mobile Workspace Tabs logic
+            const mobileBtnEditor = document.getElementById('mobile-btn-editor');
+            const mobileBtnPreview = document.getElementById('mobile-btn-preview');
+            const workspace = document.querySelector('.workspace');
+
+            if (mobileBtnEditor && mobileBtnPreview && workspace) {
+                mobileBtnEditor.addEventListener('click', () => {
+                    mobileBtnEditor.classList.add('active');
+                    mobileBtnPreview.classList.remove('active');
+                    workspace.classList.remove('show-preview');
+                    if (window.editor) {
+                        window.editor.layout();
+                    }
+                });
+
+                mobileBtnPreview.addEventListener('click', () => {
+                    mobileBtnPreview.classList.add('active');
+                    mobileBtnEditor.classList.remove('active');
+                    workspace.classList.add('show-preview');
+                });
+            }
         },
 
         switchTab(tab) {
