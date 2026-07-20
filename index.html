@@ -505,6 +505,27 @@
             display: flex;
             flex-direction: column;
             gap: 1.25rem;
+            position: relative;
+        }
+
+        /* Loading Overlay for Form Main */
+        .form-loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(10, 11, 14, 0.85);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            border-radius: inherit;
         }
 
         .form-section-title {
@@ -1335,6 +1356,11 @@
                 gap: 1rem;
             }
 
+            .form-loading-overlay.visible {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
             /* Monaco editor styling on mobile */
             #editor-container {
                 height: 100%;
@@ -1440,7 +1466,20 @@
         <!-- Form Editor Container -->
         <div id="form-editor-container" class="form-editor-layout">
             <div class="form-sidebar" id="form-sidebar"></div>
-            <div class="form-main" id="form-main"></div>
+            <div class="form-main" id="form-main">
+                <div class="loading-overlay form-loading-overlay visible" id="form-loading-overlay">
+                    <div class="spinner"></div>
+                    <div style="font-weight: 600;" id="form-loading-status">Loading editor...</div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;" id="form-loading-substatus">
+                        This takes less than a second
+                    </div>
+                    <div class="progress-bar-container" id="form-loading-progress-container"
+                         style="display: none; width: 200px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-top: 0.75rem;">
+                        <div class="progress-bar-fill" id="form-loading-progress-fill"
+                             style="width: 0%; height: 100%; background: var(--primary); transition: width 0.1s ease;"></div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div id="editor-container" style="display: none;"></div>
@@ -1557,6 +1596,58 @@
     const previewIframe = document.getElementById('preview-iframe');
     const previewPlaceholder = document.getElementById('preview-placeholder');
     const loadingOverlay = document.getElementById('loading-overlay');
+
+    function showAllLoadingOverlays(statusText, substatusText, progressPercent = null) {
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const formLoadingOverlay = document.getElementById('form-loading-overlay');
+
+        if (loadingOverlay) loadingOverlay.classList.add('visible');
+        if (formLoadingOverlay) formLoadingOverlay.classList.add('visible');
+
+        updateAllLoadingStatus(statusText, substatusText, progressPercent);
+    }
+
+    function updateAllLoadingStatus(statusText, substatusText, progressPercent = null) {
+        const loadingStatus = document.getElementById('loading-status');
+        const loadingSubstatus = document.getElementById('loading-substatus');
+        const progressContainer = document.getElementById('loading-progress-container');
+        const progressFill = document.getElementById('loading-progress-fill');
+
+        if (loadingStatus && statusText) loadingStatus.textContent = statusText;
+        if (loadingSubstatus && substatusText !== undefined) loadingSubstatus.textContent = substatusText;
+        if (progressContainer) {
+            if (progressPercent !== null && progressPercent !== undefined) {
+                progressContainer.style.display = 'block';
+                if (progressFill) progressFill.style.width = progressPercent + '%';
+            } else {
+                progressContainer.style.display = 'none';
+            }
+        }
+
+        const formLoadingStatus = document.getElementById('form-loading-status');
+        const formLoadingSubstatus = document.getElementById('form-loading-substatus');
+        const formProgressContainer = document.getElementById('form-loading-progress-container');
+        const formProgressFill = document.getElementById('form-loading-progress-fill');
+
+        if (formLoadingStatus && statusText) formLoadingStatus.textContent = statusText;
+        if (formLoadingSubstatus && substatusText !== undefined) formLoadingSubstatus.textContent = substatusText;
+        if (formProgressContainer) {
+            if (progressPercent !== null && progressPercent !== undefined) {
+                formProgressContainer.style.display = 'block';
+                if (formProgressFill) formProgressFill.style.width = progressPercent + '%';
+            } else {
+                formProgressContainer.style.display = 'none';
+            }
+        }
+    }
+
+    function hideAllLoadingOverlays() {
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const formLoadingOverlay = document.getElementById('form-loading-overlay');
+
+        if (loadingOverlay) loadingOverlay.classList.remove('visible');
+        if (formLoadingOverlay) formLoadingOverlay.classList.remove('visible');
+    }
     const consolePanel = document.getElementById('console-panel');
     const consoleHeader = document.getElementById('console-header');
     const consoleContent = document.getElementById('console-content');
@@ -1806,6 +1897,13 @@
 
         renderActiveSection() {
             const formMain = document.getElementById('form-main');
+            const existingOverlay = document.getElementById('form-loading-overlay');
+            const isVisible = existingOverlay ? existingOverlay.classList.contains('visible') : false;
+            const statusText = document.getElementById('form-loading-status')?.textContent || 'Loading editor...';
+            const substatusText = document.getElementById('form-loading-substatus')?.textContent || 'This takes less than a second';
+            const progressDisp = document.getElementById('form-loading-progress-container')?.style.display || 'none';
+            const progressWidth = document.getElementById('form-loading-progress-fill')?.style.width || '0%';
+
             formMain.innerHTML = '';
 
             if (this.activeSection === 'basic_info') {
@@ -1815,6 +1913,21 @@
             } else {
                 this.renderCVSection(formMain, this.activeSection);
             }
+
+            const overlay = document.createElement('div');
+            overlay.className = `loading-overlay form-loading-overlay ${isVisible ? 'visible' : ''}`;
+            overlay.id = 'form-loading-overlay';
+            overlay.innerHTML = `
+                <div class="spinner"></div>
+                <div style="font-weight: 600;" id="form-loading-status">${this.escapeHtml(statusText)}</div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem;" id="form-loading-substatus">${this.escapeHtml(substatusText)}</div>
+                <div class="progress-bar-container" id="form-loading-progress-container"
+                     style="display: ${progressDisp}; width: 200px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-top: 0.75rem;">
+                    <div class="progress-bar-fill" id="form-loading-progress-fill"
+                         style="width: ${progressWidth}; height: 100%; background: var(--primary); transition: width 0.1s ease;"></div>
+                </div>
+            `;
+            formMain.appendChild(overlay);
 
             lucide.createIcons({node: formMain});
         },
@@ -2598,26 +2711,15 @@
 
     async function initWorker() {
         setStatus('compiling', 'Downloading compiler assets...');
-        loadingOverlay.classList.add('visible');
-
-        const progressContainer = document.getElementById('loading-progress-container');
-        const progressFill = document.getElementById('loading-progress-fill');
-        const loadingStatus = document.getElementById('loading-status');
-        const loadingSubstatus = document.getElementById('loading-substatus');
-
-        progressContainer.style.display = 'block';
-        loadingStatus.textContent = 'Загрузка компилятора...';
+        showAllLoadingOverlays('Загрузка компилятора...', 'Загрузка: 0%', 0);
 
         try {
             const wheelUrl = getAppPath("/rendercv-2.8-py3-none-any.whl");
             const wheelBytes = await fetchWithProgress(wheelUrl, (percent) => {
-                progressFill.style.width = percent + '%';
-                loadingSubstatus.textContent = `Загрузка: ${percent}%`;
+                updateAllLoadingStatus('Загрузка компилятора...', `Загрузка: ${percent}%`, percent);
             }, 'arraybuffer');
 
-            loadingStatus.textContent = 'Инициализация...';
-            loadingSubstatus.textContent = 'Подготовка окружения...';
-            progressContainer.style.display = 'none';
+            updateAllLoadingStatus('Инициализация...', 'Подготовка окружения...', null);
 
             worker = new Worker('render_worker.js');
 
@@ -2628,8 +2730,7 @@
                 } else if (data.type === "status") {
                     if (data.status === "loading") {
                         setStatus('compiling', data.message);
-                        loadingStatus.textContent = data.message;
-                        loadingSubstatus.textContent = 'Это может занять некоторое время';
+                        updateAllLoadingStatus(data.message, 'Это может занять некоторое время', null);
                     } else if (data.status === "ready") {
                         setStatus('ready', data.message);
 
@@ -2644,7 +2745,7 @@
                         });
                     } else if (data.status === "error") {
                         setStatus('error', "Initialization Failed: " + data.error);
-                        loadingOverlay.classList.remove('visible');
+                        hideAllLoadingOverlays();
                         showToast("Failed to initialize CV Resume Builder: " + data.error, "error");
                     }
                 } else if (data.type === "render_response") {
@@ -2674,7 +2775,7 @@
             console.error(e);
             setStatus('error', 'Download Failed');
             showToast('Failed to download compiler: ' + e.message, 'error');
-            loadingOverlay.classList.remove('visible');
+            hideAllLoadingOverlays();
         }
     }
 
@@ -2687,18 +2788,10 @@
 
     async function loadLocalPackages() {
         setStatus('compiling', 'Loading local Typst packages...');
-        const progressContainer = document.getElementById('loading-progress-container');
-        const progressFill = document.getElementById('loading-progress-fill');
-        const loadingStatus = document.getElementById('loading-status');
-        const loadingSubstatus = document.getElementById('loading-substatus');
-
-        loadingOverlay.classList.add('visible');
-        progressContainer.style.display = 'block';
-        loadingStatus.textContent = 'Загрузка Typst пакетов...';
+        showAllLoadingOverlays('Загрузка Typst пакетов...', 'Загрузка: 0%', 0);
 
         const updateProgress = (pct) => {
-            progressFill.style.width = pct + '%';
-            loadingSubstatus.textContent = `Загрузка: ${pct}%`;
+            updateAllLoadingStatus('Загрузка Typst пакетов...', `Загрузка: ${pct}%`, pct);
         };
 
         const [rcvLib, faLib, faImpl, faGenFunc, faGenMap] = await Promise.all([
@@ -2722,8 +2815,7 @@
         fontawesomeLibGenFuncBytes = new Uint8Array(faGenFunc);
         fontawesomeLibGenMapBytes = new Uint8Array(faGenMap);
 
-        progressContainer.style.display = 'none';
-        loadingOverlay.classList.remove('visible');
+        hideAllLoadingOverlays();
     }
 
     // Font Resolution & Preloading Map
@@ -2834,6 +2926,7 @@
         }
 
         setStatus('compiling', `Loading fonts for ${fontFamily}...`);
+        updateAllLoadingStatus(`Loading fonts for ${fontFamily}...`, 'Please wait');
 
         const urlsToLoad = BASE_FONTS.map(path => getAppPath(path));
         if (FONT_MAP[fontFamily]) {
@@ -3068,7 +3161,7 @@
         }
 
         setStatus('compiling', 'Validating CV & Generating Typst...');
-        loadingOverlay.classList.add('visible');
+        showAllLoadingOverlays('Validating CV & Generating Typst...', 'Preparing...');
         btnRender.disabled = true;
 
         // Clear prior errors
@@ -3095,6 +3188,7 @@
                 const fontFamily = getActiveFontFamily(yamlContent);
 
                 setStatus('compiling', 'Compiling Typst to PDF...');
+                updateAllLoadingStatus('Compiling Typst to PDF...', 'This takes less than a second');
                 const comp = await prepareCompiler(fontFamily);
 
                 comp.mapShadow('/main.typ', new TextEncoder().encode(typstCode));
@@ -3153,7 +3247,7 @@
             setStatus('error', 'Compilation failed');
             showToast('Error during rendering: ' + err.message, 'error');
         } finally {
-            loadingOverlay.classList.remove('visible');
+            hideAllLoadingOverlays();
             btnRender.disabled = false;
         }
     }
@@ -3264,6 +3358,7 @@
                     if (parts.length > 0) {
                         filename = `Resume_${parts.join('_')}`;
                     }
+                    filename = filename.replace(/[.()]/g,'');
                 }
             }
         } catch (e) {
